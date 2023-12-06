@@ -1,8 +1,12 @@
-mod constants;
-mod response;
-mod server;
+use http_server::{HTTPRequest, HTTPResponse, HttpServer};
 
 fn main() -> std::io::Result<()> {
-    let server = server::HttpServer::default();
+    let server = HttpServer::default()
+        .get("/", |req: HTTPRequest| {
+            dbg!(req);
+            HTTPResponse::new()
+        })
+        .post("/test", |_req| HTTPResponse::new());
+
     server.listen("127.0.0.1:8000")
 }

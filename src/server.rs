@@ -7,12 +7,30 @@ use std::{
 };
 
 use crate::constants;
+use crate::request::{HTTPRequest, RequestMethod};
+use crate::response::HTTPResponse;
 
-type Handler = dyn Fn();
+type Handler = dyn Fn(HTTPRequest) -> HTTPResponse;
 
 #[derive(Default)]
 pub struct HttpServer {
-    handlers: HashMap<String, Box<Handler>>,
+    handlers: HashMap<(String, RequestMethod), Box<Handler>>,
+}
+
+// TODO: some macro(?) like #[get("/")] or #[post("/")]
+// fn index() -> HTTPResponse {
+// will make the function into a struct that impls ToHandler
+
+// TODO: doc comments
+macro_rules! method {
+    ($method:ident, $request_method:ident) => {
+        pub fn $method<T>(self, path: &str, handler: T) -> Self
+        where
+            T: ToHandler + 'static,
+        {
+            self.route(path, RequestMethod::$request_method, handler)
+        }
+    };
 }
 
 impl HttpServer {
@@ -24,10 +42,14 @@ impl HttpServer {
     // more like overhead, idrk
     // i think metadata is best word
 
+    // TODO (ACTUALLY next): handle & parse HTTP request
+    // TODO: use nom
     // TODO (next!!!): be able to respond
 
     fn handle_client(&self, stream: TcpStream) -> std::io::Result<()> {
         let mut reader = BufReader::new(stream);
+
+        // TODO: check handlers
 
         loop {
             let mut buf = String::new();
@@ -55,14 +77,44 @@ impl HttpServer {
         for stream in listener.incoming() {
             self.handle_client(stream?)?;
         }
+
         Ok(())
     }
 
-    pub fn get(&self, path: &str, _handler: impl Fn() -> ()) -> std::io::Result<()> {
-        todo!()
+    pub fn route<T>(mut self, path: &str, method: RequestMethod, handler: T) -> Self
+    where
+        T: ToHandler + 'static,
+    {
+        self.handlers
+            .insert((path.to_string(), method), handler.to_handler());
+        self
     }
 
-    pub fn post(&self, path: &str, _handler: impl Fn() -> ()) -> std::io::Result<()> {
-        todo!()
+    method!(get, GET);
+    method!(post, POST);
+    method!(put, PUT);
+    method!(delete, DELETE);
+    method!(head, HEAD);
+    method!(options, OPTIONS);
+    // method!(connect, CONNECT);
+    method!(trace, TRACE);
+    method!(patch, PATCH);
+}
+
+pub trait ToHandler {
+    fn to_handler(self) -> Box<Handler>;
+}
+
+impl<T> ToHandler for T
+where
+    T: Fn(HTTPRequest) -> HTTPResponse + 'static,
+{
+    fn to_handler(self) -> Box<Handler> {
+        Box::new(self)
     }
 }
+
+// TODO: funcs that return Result<JSON, Error(?)>
+
+// TODO?: serde, maybe make our own ToJson trait so user
+// can use any json lib they want - that we support (with feature flags)
