@@ -6,7 +6,8 @@ fn main() -> std::io::Result<()> {
             dbg!(req);
             HTTPResponse::new()
         })
-        .post("/test", |_req| HTTPResponse::new());
+        .post("/test", |_req| HTTPResponse::new())
+        .get("/test2", |_req| "abc");
 
     server.listen("127.0.0.1:8000")
 }

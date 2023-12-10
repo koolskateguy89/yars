@@ -14,7 +14,10 @@ type Handler = dyn Fn(HTTPRequest) -> HTTPResponse;
 
 #[derive(Default)]
 pub struct HttpServer {
+    // TODO: router struct?
+    // TODO?: change String to Box<str>?
     handlers: HashMap<(String, RequestMethod), Box<Handler>>,
+    default_handler: Option<Box<Handler>>,
 }
 
 // TODO: some macro(?) like #[get("/")] or #[post("/")]
@@ -26,7 +29,7 @@ macro_rules! method {
     ($method:ident, $request_method:ident) => {
         pub fn $method<T>(self, path: &str, handler: T) -> Self
         where
-            T: ToHandler + 'static,
+            T: ToHandler,
         {
             self.route(path, RequestMethod::$request_method, handler)
         }
@@ -83,7 +86,7 @@ impl HttpServer {
 
     pub fn route<T>(mut self, path: &str, method: RequestMethod, handler: T) -> Self
     where
-        T: ToHandler + 'static,
+        T: ToHandler,
     {
         self.handlers
             .insert((path.to_string(), method), handler.to_handler());
@@ -99,18 +102,27 @@ impl HttpServer {
     // method!(connect, CONNECT);
     method!(trace, TRACE);
     method!(patch, PATCH);
+
+    pub fn default_handler<T>(mut self, handler: T) -> Self
+    where
+        T: ToHandler,
+    {
+        self.default_handler = Some(handler.to_handler());
+        self
+    }
 }
 
 pub trait ToHandler {
     fn to_handler(self) -> Box<Handler>;
 }
 
-impl<T> ToHandler for T
+impl<T, B> ToHandler for T
 where
-    T: Fn(HTTPRequest) -> HTTPResponse + 'static,
+    T: Fn(HTTPRequest) -> B + 'static,
+    B: Into<HTTPResponse>,
 {
     fn to_handler(self) -> Box<Handler> {
-        Box::new(self)
+        Box::new(move |req| self(req).into())
     }
 }
 
