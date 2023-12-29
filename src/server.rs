@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::constants;
-use crate::request::{HTTPRequest, RequestMethod};
+use crate::request::{parse_request, HTTPRequest, RequestMethod};
 use crate::response::HTTPResponse;
 
 type Handler = dyn Fn(HTTPRequest) -> HTTPResponse;
@@ -46,25 +46,39 @@ impl HttpServer {
     // i think metadata is best word
 
     // TODO (ACTUALLY next): handle & parse HTTP request
+    // TODO: parser module (or separate crate)
     // TODO: use nom
     // TODO (next!!!): be able to respond
 
     fn handle_client(&self, stream: TcpStream) -> std::io::Result<()> {
         let mut reader = BufReader::new(stream);
 
-        // TODO: check handlers
+        let mut buf = String::new();
 
         loop {
-            let mut buf = String::new();
+            // let mut buf = String::new();
             let read_bytes = reader.read_line(&mut buf)?;
-            println!(
-                "Read {read_bytes} bytes from stream = {}",
-                buf.escape_default(),
-            );
+            // println!(
+            //     "Read {read_bytes} bytes from stream = {}",
+            //     buf.escape_default(),
+            // );
+            println!("Read {read_bytes} bytes from stream",);
 
             if read_bytes <= constants::CRLF.len() {
                 break;
             }
+        }
+
+        println!("Total read from stream = {}", buf.escape_default());
+
+        if !buf.is_empty() {
+            let req = parse_request(buf);
+            dbg!(req);
+            // TODO: check handlers
+
+            // TODO: get response from handler
+
+            // TODO: send response (how?)
         }
 
         Ok(())
@@ -127,6 +141,10 @@ where
 }
 
 // TODO: funcs that return Result<JSON, Error(?)>
+// Really we don't have to do that here, we just need to
+// impl Into<HTTPResponse> for JSON
+// But we DO need to handle funcs that return Result
+// actually maybe not, kinda cba
 
 // TODO?: serde, maybe make our own ToJson trait so user
 // can use any json lib they want - that we support (with feature flags)
