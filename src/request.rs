@@ -82,7 +82,6 @@ fn parse_headers(lines: &mut Lines) -> Headers {
     headers
 }
 
-// TODO: pub(crate) stuff for creating request
 pub(crate) fn parse_request(buf: String) -> Option<HTTPRequest> {
     // TODO: use nom
     let mut lines = buf.lines();

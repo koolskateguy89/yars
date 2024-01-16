@@ -3,7 +3,7 @@
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
 use crate::constants;
@@ -15,7 +15,6 @@ type Handler = dyn Fn(HTTPRequest) -> HTTPResponse;
 #[derive(Default)]
 pub struct HttpServer {
     // TODO: router struct?
-    // TODO?: change String to Box<str>?
     handlers: HashMap<(String, RequestMethod), Box<Handler>>,
     default_handler: Option<Box<Handler>>,
 }
@@ -41,27 +40,32 @@ impl HttpServer {
         Self::default()
     }
 
-    // TODO: handle HTTP header - header is wrong word
-    // more like overhead, idrk
-    // i think metadata is best word
-
-    // TODO (ACTUALLY next): handle & parse HTTP request
     // TODO: parser module (or separate crate)
     // TODO: use nom
     // TODO (next!!!): be able to respond
 
-    fn handle_client(&self, stream: TcpStream) -> std::io::Result<()> {
+    fn get_request_handler(&self, req: &HTTPRequest) -> Option<&Handler> {
+        let boxed_hander_opt = self.handlers.get(&(req.url.clone(), req.method));
+
+        // Default handler if no matching handler
+        let boxed_hander_opt = boxed_hander_opt.or(self.default_handler.as_ref());
+
+        // Extract the handler from the Box
+        let handler_opt = boxed_hander_opt.map(|boxed_handler| {
+            let handler: &Handler = boxed_handler.as_ref();
+            handler
+        });
+
+        handler_opt
+    }
+
+    fn handle_client(&self, stream: TcpStream) -> std::io::Result<Option<HTTPRequest>> {
         let mut reader = BufReader::new(stream);
 
         let mut buf = String::new();
 
         loop {
-            // let mut buf = String::new();
             let read_bytes = reader.read_line(&mut buf)?;
-            // println!(
-            //     "Read {read_bytes} bytes from stream = {}",
-            //     buf.escape_default(),
-            // );
             println!("Read {read_bytes} bytes from stream",);
 
             if read_bytes <= constants::CRLF.len() {
@@ -69,30 +73,42 @@ impl HttpServer {
             }
         }
 
-        println!("Total read from stream = {}", buf.escape_default());
+        // println!("Total read from stream = {}", buf.escape_default());
+        // println!("Total num bytes read from stream = {}", buf.len());
 
-        if !buf.is_empty() {
+        if buf.is_empty() {
+            Ok(None)
+        } else {
             let req = parse_request(buf);
-            dbg!(req);
-            // TODO: check handlers
-
-            // TODO: get response from handler
-
-            // TODO: send response (how?)
+            Ok(req)
         }
-
-        Ok(())
     }
 
-    // TODO: make addr type the same as TcpListener::bind
-    pub fn listen(&self, addr: &str) -> std::io::Result<()> {
+    pub fn listen<A: ToSocketAddrs>(&self, addr: A) -> std::io::Result<()> {
         let listener = TcpListener::bind(addr)?;
 
         println!("Listening on {}", listener.local_addr()?);
 
         // accept connections and process them serially
         for stream in listener.incoming() {
-            self.handle_client(stream?)?;
+            let req = self.handle_client(stream?)?;
+
+            let Some(req) = req else {
+                continue;
+            };
+            dbg!(&req);
+
+            // TODO: check handlers
+            let Some(handler) = self.get_request_handler(&req) else {
+                // TODO?: log that no found handler
+                continue;
+            };
+
+            // TODO: get response from handler
+            let response = handler(req);
+            dbg!(&response);
+
+            // TODO: send response (how?)
         }
 
         Ok(())
