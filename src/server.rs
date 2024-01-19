@@ -2,15 +2,15 @@
 
 use std::{
     collections::HashMap,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
 use crate::constants;
-use crate::request::{parse_request, HTTPRequest, RequestMethod};
-use crate::response::HTTPResponse;
+use crate::request::{HttpRequest, RequestMethod};
+use crate::response::HttpResponse;
 
-type Handler = dyn Fn(HTTPRequest) -> HTTPResponse;
+type Handler = dyn Fn(HttpRequest) -> HttpResponse;
 
 #[derive(Default)]
 pub struct HttpServer {
@@ -20,7 +20,7 @@ pub struct HttpServer {
 }
 
 // TODO: some macro(?) like #[get("/")] or #[post("/")]
-// fn index() -> HTTPResponse {
+// fn index() -> HttpResponse {
 // will make the function into a struct that impls ToHandler
 
 // TODO: doc comments
@@ -44,8 +44,8 @@ impl HttpServer {
     // TODO: use nom
     // TODO (next!!!): be able to respond
 
-    fn get_request_handler(&self, req: &HTTPRequest) -> Option<&Handler> {
-        let boxed_hander_opt = self.handlers.get(&(req.url.clone(), req.method));
+    fn get_request_handler(&self, req: &HttpRequest) -> Option<&Handler> {
+        let boxed_hander_opt = self.handlers.get(&(req.uri.clone(), req.method));
 
         // Default handler if no matching handler
         let boxed_hander_opt = boxed_hander_opt.or(self.default_handler.as_ref());
@@ -59,8 +59,8 @@ impl HttpServer {
         handler_opt
     }
 
-    fn handle_client(&self, stream: TcpStream) -> std::io::Result<Option<HTTPRequest>> {
-        let mut reader = BufReader::new(stream);
+    fn handle_connection(&self, mut stream: &mut TcpStream) -> std::io::Result<()> {
+        let mut reader = BufReader::new(&mut stream);
 
         let mut buf = String::new();
 
@@ -74,14 +74,30 @@ impl HttpServer {
         }
 
         // println!("Total read from stream = {}", buf.escape_default());
-        // println!("Total num bytes read from stream = {}", buf.len());
+        println!("Total num bytes read from stream = {}", buf.len());
 
         if buf.is_empty() {
-            Ok(None)
-        } else {
-            let req = parse_request(buf);
-            Ok(req)
+            return Ok(());
         }
+
+        let Some(req) = HttpRequest::parse_request(buf) else {
+            return Ok(());
+        };
+        dbg!(&req);
+
+        let Some(handler) = self.get_request_handler(&req) else {
+            // TODO?: log that no handler was found
+            return Ok(());
+        };
+
+        let response = handler(req);
+        dbg!(&response);
+
+        // TODO: send response (how?)
+        let response = format!("HTTP/1.1 200 OK{0}{0}", constants::CRLF);
+        stream.write_all(response.as_bytes())?;
+
+        Ok(())
     }
 
     pub fn listen<A: ToSocketAddrs>(&self, addr: A) -> std::io::Result<()> {
@@ -91,24 +107,8 @@ impl HttpServer {
 
         // accept connections and process them serially
         for stream in listener.incoming() {
-            let req = self.handle_client(stream?)?;
-
-            let Some(req) = req else {
-                continue;
-            };
-            dbg!(&req);
-
-            // TODO: check handlers
-            let Some(handler) = self.get_request_handler(&req) else {
-                // TODO?: log that no found handler
-                continue;
-            };
-
-            // TODO: get response from handler
-            let response = handler(req);
-            dbg!(&response);
-
-            // TODO: send response (how?)
+            let mut stream = stream?;
+            self.handle_connection(&mut stream)?;
         }
 
         Ok(())
@@ -148,8 +148,8 @@ pub trait ToHandler {
 
 impl<T, B> ToHandler for T
 where
-    T: Fn(HTTPRequest) -> B + 'static,
-    B: Into<HTTPResponse>,
+    T: Fn(HttpRequest) -> B + 'static,
+    B: Into<HttpResponse>,
 {
     fn to_handler(self) -> Box<Handler> {
         Box::new(move |req| self(req).into())
@@ -158,7 +158,7 @@ where
 
 // TODO: funcs that return Result<JSON, Error(?)>
 // Really we don't have to do that here, we just need to
-// impl Into<HTTPResponse> for JSON
+// impl Into<HttpResponse> for JSON
 // But we DO need to handle funcs that return Result
 // actually maybe not, kinda cba
 

@@ -2,7 +2,10 @@ mod constants;
 pub mod request;
 mod response;
 mod server;
+mod version;
 
-pub use request::HTTPRequest;
-pub use response::HTTPResponse;
+// TODO: rename to YARS or whatever
+pub use request::HttpRequest;
+pub use response::HttpResponse;
 pub use server::HttpServer;
+pub use version::HttpVersion;

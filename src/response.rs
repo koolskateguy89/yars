@@ -4,14 +4,14 @@ use std::collections::HashMap;
 
 // TODO: type builder thingy so status is required
 #[derive(Clone, Debug, Default)]
-pub struct HTTPResponse {
+pub struct HttpResponse {
     status: Option<u32>, // idk if u32 is right
     headers: HashMap<String, String>,
     // TODO?: change to bytes?
     body: Option<String>,
 }
 
-impl HTTPResponse {
+impl HttpResponse {
     pub fn new() -> Self {
         Self {
             status: None,
@@ -47,16 +47,21 @@ impl HTTPResponse {
     // TODO?: some way to send binary data
 }
 
+// Response:
+// HTTP-Version Status-Code Reason-Phrase CRLF
+// headers CRLF
+// message-body
+
 // pub trait ToResponse {
-//     fn to_response(self) -> HTTPResponse;
+//     fn to_response(self) -> HttpResponse;
 // }
 
 // impl<T> ToResponse for T
 // where
 //     T: Into<String>,
 // {
-//     fn to_response(self) -> HTTPResponse {
-//         HTTPResponse {
+//     fn to_response(self) -> HttpResponse {
+//         HttpResponse {
 //             status: Some(200),
 //             headers: HashMap::new(),
 //             body: Some(self.into()),
@@ -68,14 +73,14 @@ impl HTTPResponse {
 // where
 //     T: Into<String>,
 // {
-//     fn to_response(self) -> HTTPResponse {
+//     fn to_response(self) -> HttpResponse {
 //         todo!()
 //     }
 // }
 
-// TODO: Json type -> impl From<Json> for HTTPResponse
+// TODO: Json type -> impl From<Json> for HttpResponse
 
-impl<T> From<T> for HTTPResponse
+impl<T> From<T> for HttpResponse
 where
     T: Into<String>,
 {

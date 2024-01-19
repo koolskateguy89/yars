@@ -5,10 +5,10 @@ use nom::*;
 type Headers = HashMap<String, String>;
 
 #[derive(Debug)]
-pub struct HTTPRequest {
+pub struct HttpRequest {
     // TODO
     pub method: RequestMethod,
-    pub url: String, // TOOD?: diff type
+    pub uri: String, // TODO?: diff type
     pub headers: Headers,
     pub body: Option<String>,
 }
@@ -26,12 +26,12 @@ pub enum RequestMethod {
     PATCH,
 }
 
-/// METHOD URL HTTP/1.1
+/// Method Request-URI HTTP-Version
 fn parse_first_line(first_line: &str) -> Option<(RequestMethod, &str)> {
     let mut first_line = first_line.split_whitespace();
 
     let method = first_line.next()?;
-    let url = first_line.next()?;
+    let uri = first_line.next()?;
     let _http_version = first_line.next()?;
 
     let method = match method {
@@ -47,7 +47,7 @@ fn parse_first_line(first_line: &str) -> Option<(RequestMethod, &str)> {
         _ => return None,
     };
 
-    Some((method, url))
+    Some((method, uri))
 }
 
 /// headers
@@ -82,21 +82,23 @@ fn parse_headers(lines: &mut Lines) -> Headers {
     headers
 }
 
-pub(crate) fn parse_request(buf: String) -> Option<HTTPRequest> {
-    // TODO: use nom
-    let mut lines = buf.lines();
+impl HttpRequest {
+    pub(crate) fn parse_request(buf: String) -> Option<HttpRequest> {
+        // TODO: use nom
+        let mut lines = buf.lines();
 
-    let first_line = lines.next()?;
-    let (method, url) = parse_first_line(first_line)?;
+        let first_line = lines.next()?;
+        let (method, uri) = parse_first_line(first_line)?;
 
-    let headers = parse_headers(&mut lines);
+        let headers = parse_headers(&mut lines);
 
-    // TODO: body
+        // TODO: body
 
-    Some(HTTPRequest {
-        method,
-        url: url.to_string(),
-        headers,
-        body: None,
-    })
+        Some(HttpRequest {
+            method,
+            uri: uri.to_string(),
+            headers,
+            body: None,
+        })
+    }
 }
