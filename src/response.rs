@@ -1,28 +1,22 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::constants;
+use crate::{constants, HttpStatusCode};
 
-// TODO!: Status code enum
-
-#[derive(Clone, Debug, Default)]
+/// HTTP response
+///
+/// https://tools.ietf.org/html/rfc2616#section-6
+#[derive(Clone, Debug)]
 pub struct HttpResponse {
     // TODO?: include HTTP version - idk if it should be included in response tho
-    status: u32, // idk if u32 is right
-    headers: HashMap<String, String>,
+    pub(crate) status: HttpStatusCode,
+    pub(crate) headers: HashMap<String, String>,
     // TODO?: change to bytes?
-    body: Option<String>,
+    pub(crate) body: Option<String>,
 }
 
+// TODO?: make a builder for HttpResponse
 impl HttpResponse {
-    pub fn new(status: u32) -> Self {
-        Self {
-            status,
-            headers: HashMap::new(),
-            body: None,
-        }
-    }
-
-    pub fn status(mut self, status: u32) -> Self {
+    pub fn status(mut self, status: HttpStatusCode) -> Self {
         self.status = status;
         self
     }
@@ -49,8 +43,11 @@ impl HttpResponse {
         self.header("Content-Type", "application/json").body(json)
     }
 
+    pub fn html(self, html: impl Into<String>) -> Self {
+        self.header("Content-Type", "text/html").body(html)
+    }
+
     // TODO: .xml(xml: String) (final)
-    // TODO: .html(html: String) (final)
     // TODO: .text(text: String) (final)
 
     // TODO?: some way to send binary data
@@ -62,11 +59,14 @@ impl Display for HttpResponse {
     /// headers CRLF
     /// message-body
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // TODO: get "phrase" from status code (e.g. "OK" for 200)
-        // tbh that would be easier with statuscode as an enum
-
         // Status line
-        write!(f, "HTTP/1.1 {}{}", self.status, constants::CRLF)?;
+        write!(
+            f,
+            "HTTP/1.1 {} {} {}",
+            self.status.code(),
+            self.status.phrase(),
+            constants::CRLF
+        )?;
 
         // Content length header
         let body_len = self.body.as_ref().map(|body| body.len()).unwrap_or(0);
@@ -121,7 +121,7 @@ where
 {
     fn from(body: T) -> Self {
         Self {
-            status: 200,
+            status: HttpStatusCode::Ok,
             headers: HashMap::new(),
             body: Some(body.into()),
         }

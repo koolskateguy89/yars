@@ -4,11 +4,13 @@ mod parser;
 
 type Headers = HashMap<String, String>;
 
+/// HTTP request
+///
+/// https://tools.ietf.org/html/rfc2616#section-5
 #[derive(Debug)]
 pub struct HttpRequest {
-    // TODO
     pub method: RequestMethod,
-    pub uri: String, // TODO?: diff type
+    pub uri: String,
     pub headers: Headers,
     pub body: Option<String>,
 }
