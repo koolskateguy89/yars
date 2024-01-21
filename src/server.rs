@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use log::{debug, info};
 use std::{
     collections::HashMap,
     io::{BufRead, BufReader, Write},
@@ -66,19 +67,20 @@ impl HttpServer {
 
         loop {
             let read_bytes = reader.read_line(&mut buf)?;
-            println!("Read {read_bytes} bytes from stream",);
-
             if read_bytes <= constants::CRLF.len() {
                 break;
             }
         }
 
-        // println!("Total read from stream = {}", buf.escape_default());
-        println!("Total num bytes read from stream = {}", buf.len());
-
         if buf.is_empty() {
             return Ok(());
         }
+
+        debug!(
+            "Total bytes read from connection with {}: {}",
+            stream.peer_addr()?,
+            buf.len()
+        );
 
         let Some(req) = HttpRequest::parse_request(buf) else {
             return Ok(());
@@ -86,7 +88,7 @@ impl HttpServer {
         dbg!(&req);
 
         let Some(handler) = self.get_request_handler(&req) else {
-            // TODO?: log that no handler was found
+            debug!("No handler found for URI: {}", req.uri);
             return Ok(());
         };
 
@@ -101,7 +103,7 @@ impl HttpServer {
     pub fn listen<A: ToSocketAddrs>(&self, addr: A) -> std::io::Result<()> {
         let listener = TcpListener::bind(addr)?;
 
-        println!("Listening on {}", listener.local_addr()?);
+        info!("Listening on {}", listener.local_addr()?);
 
         // accept connections and process them serially
         for stream in listener.incoming() {

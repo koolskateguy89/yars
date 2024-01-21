@@ -3,19 +3,21 @@ use log::LevelFilter;
 
 fn test_i_guess(req: HttpRequest) -> HttpResponse {
     dbg!(req);
-    HttpResponse::new(200)
+    HttpResponse::Ok()
 }
 
 fn main() -> std::io::Result<()> {
-    // pretty_env_logger::formatted_builder()
-    //     .filter_level(LevelFilter::Debug)
-    //     .init();
+    pretty_env_logger::formatted_builder()
+        .filter_level(LevelFilter::Debug)
+        .init();
 
     let server = HttpServer::default()
         .get("/", |_req: HttpRequest| {
-            HttpResponse::new(200).json(r#"{"abc": 123}"#)
+            HttpResponse::Ok().json(r#"{"abc": 123}"#)
         })
-        .post("/test", |_req| HttpResponse::new(404))
+        .get("/test", |_req: HttpRequest| {
+            HttpResponse::Ok().html(include_str!("../erm.html"))
+        })
         .get("/test2", |_req| "abc")
         .get("/abc", test_i_guess);
 
