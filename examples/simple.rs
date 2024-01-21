@@ -1,9 +1,8 @@
 use http_server::{HttpRequest, HttpResponse, HttpServer};
 use log::LevelFilter;
 
-fn test_i_guess(req: HttpRequest) -> HttpResponse {
-    dbg!(req);
-    HttpResponse::Ok()
+fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
+    HttpResponse::Ok().json(r#"{"abc": 123}"#)
 }
 
 fn main() -> std::io::Result<()> {
@@ -12,14 +11,10 @@ fn main() -> std::io::Result<()> {
         .init();
 
     let server = HttpServer::default()
-        .get("/", |_req: HttpRequest| {
-            HttpResponse::Ok().json(r#"{"abc": 123}"#)
-        })
-        .get("/test", |_req: HttpRequest| {
-            HttpResponse::Ok().html(include_str!("../erm.html"))
-        })
-        .get("/test2", |_req| "abc")
-        .get("/abc", test_i_guess);
+        .get("/", index)
+        .get("/clickme", |_req: HttpRequest| {
+            HttpResponse::Ok().html(include_str!("clickme.html"))
+        });
 
     server.listen("127.0.0.1:8000")
 }

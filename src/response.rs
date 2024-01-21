@@ -74,6 +74,17 @@ impl Display for HttpResponse {
 
         self.headers
             .iter()
+            .filter(|(key, _value)| {
+                // TODO: case insensitive
+                if key.starts_with("Proxy-") || key.starts_with("Sec-") {
+                    return false;
+                }
+
+                // TODO: filter forbidden header names
+                // https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
+
+                true
+            })
             .map(|(key, value)| format!("{key}: {value}"))
             .try_for_each(|header| write!(f, "{header}{}", constants::CRLF))?;
 

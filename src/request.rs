@@ -37,7 +37,10 @@ impl HttpRequest {
 
         let headers = parser::parse_headers(&mut lines);
 
+        // TODO: check this by doing a post req
         // TODO: body
+        let body: String = lines.collect();
+        dbg!(&body);
 
         Some(HttpRequest {
             method,

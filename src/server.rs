@@ -41,10 +41,6 @@ impl HttpServer {
         Self::default()
     }
 
-    // TODO: parser module (or separate crate)
-    // TODO: use nom
-    // TODO (next!!!): be able to respond
-
     fn get_request_handler(&self, req: &HttpRequest) -> Option<&Handler> {
         let boxed_hander_opt = self.handlers.get(&(req.uri.clone(), req.method));
 
@@ -77,7 +73,7 @@ impl HttpServer {
         }
 
         debug!(
-            "Total bytes read from connection with {}: {}",
+            "bytes read from connection with {}: {}",
             stream.peer_addr()?,
             buf.len()
         );
@@ -103,7 +99,7 @@ impl HttpServer {
     pub fn listen<A: ToSocketAddrs>(&self, addr: A) -> std::io::Result<()> {
         let listener = TcpListener::bind(addr)?;
 
-        info!("Listening on {}", listener.local_addr()?);
+        info!("listening on {}", listener.local_addr()?);
 
         // accept connections and process them serially
         for stream in listener.incoming() {
@@ -129,7 +125,7 @@ impl HttpServer {
     method!(delete, DELETE);
     method!(head, HEAD);
     method!(options, OPTIONS);
-    // method!(connect, CONNECT);
+    method!(connect, CONNECT);
     method!(trace, TRACE);
     method!(patch, PATCH);
 
