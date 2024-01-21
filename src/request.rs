@@ -26,13 +26,15 @@ pub enum RequestMethod {
     PATCH,
 }
 
-/// Method Request-URI HTTP-Version
-fn parse_first_line(first_line: &str) -> Option<(RequestMethod, &str)> {
-    let mut first_line = first_line.split_whitespace();
+// TODO: extract parse_ funcs into parser submodule
 
-    let method = first_line.next()?;
-    let uri = first_line.next()?;
-    let _http_version = first_line.next()?;
+/// Method Request-URI HTTP-Version
+fn parse_status_line(status_line: &str) -> Option<(RequestMethod, &str)> {
+    let mut status_line = status_line.split_whitespace();
+
+    let method = status_line.next()?;
+    let uri = status_line.next()?;
+    let _http_version = status_line.next()?;
 
     let method = match method {
         "GET" => RequestMethod::GET,
@@ -88,7 +90,7 @@ impl HttpRequest {
         let mut lines = buf.lines();
 
         let first_line = lines.next()?;
-        let (method, uri) = parse_first_line(first_line)?;
+        let (method, uri) = parse_status_line(first_line)?;
 
         let headers = parse_headers(&mut lines);
 

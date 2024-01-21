@@ -93,9 +93,7 @@ impl HttpServer {
         let response = handler(req);
         dbg!(&response);
 
-        // TODO: send response (how?)
-        let response = format!("HTTP/1.1 200 OK{0}{0}", constants::CRLF);
-        stream.write_all(response.as_bytes())?;
+        stream.write_fmt(format_args!("{response}"))?;
 
         Ok(())
     }
