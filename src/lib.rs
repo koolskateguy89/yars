@@ -1,6 +1,6 @@
 mod constants;
 pub mod request;
-mod response;
+pub mod response;
 mod server;
 mod status;
 mod version;

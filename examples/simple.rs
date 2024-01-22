@@ -2,7 +2,11 @@ use http_server::{HttpRequest, HttpResponse, HttpServer};
 use log::LevelFilter;
 
 fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
-    HttpResponse::Ok().json(r#"{"abc": 123}"#)
+    HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#)
+}
+
+fn okay(_req: HttpRequest) -> impl Into<HttpResponse> {
+    "ok"
 }
 
 fn main() -> std::io::Result<()> {
@@ -12,6 +16,7 @@ fn main() -> std::io::Result<()> {
 
     let server = HttpServer::default()
         .get("/", index)
+        .get("/ok", okay)
         .get("/clickme", |_req: HttpRequest| {
             HttpResponse::Ok().html(include_str!("clickme.html"))
         });

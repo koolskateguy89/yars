@@ -81,7 +81,7 @@ impl HttpServer {
         let Some(req) = HttpRequest::parse_request(buf) else {
             return Ok(());
         };
-        dbg!(&req);
+        info!("{:?} {}", req.method, req.uri);
 
         let Some(handler) = self.get_request_handler(&req) else {
             debug!("No handler found for URI: {}", req.uri);
@@ -89,9 +89,12 @@ impl HttpServer {
         };
 
         let response = handler(req);
-        dbg!(&response);
 
-        stream.write_fmt(format_args!("{response}"))?;
+        stream.write_all(&response.status_line())?;
+        stream.write_all(&response.headers())?;
+        if let Some(body) = response.body() {
+            stream.write_all(body)?;
+        }
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::HttpResponse;
+use crate::{response::HttpResponseBuilder, HttpResponse};
 
 macro_rules! status_codes {
     (
@@ -41,11 +41,10 @@ impl HttpStatusCode {
 impl HttpResponse {
 $(
     #[allow(non_snake_case)]
-    pub fn $name() -> Self {
-        Self {
+    pub fn $name() -> HttpResponseBuilder {
+        HttpResponseBuilder {
             status: HttpStatusCode::$name,
             headers: HashMap::new(),
-            body: None,
         }
     }
 )+

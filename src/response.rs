@@ -1,6 +1,9 @@
-use std::{collections::HashMap, fmt::Display};
+use std::collections::HashMap;
 
 use crate::{constants, HttpStatusCode};
+
+mod builder;
+pub use builder::HttpResponseBuilder;
 
 /// HTTP response
 ///
@@ -10,67 +13,35 @@ pub struct HttpResponse {
     // TODO?: include HTTP version - idk if it should be included in response tho
     pub(crate) status: HttpStatusCode,
     pub(crate) headers: HashMap<String, String>,
-    // TODO?: change to bytes?
-    pub(crate) body: Option<String>,
+    pub(crate) body: Option<Vec<u8>>,
 }
 
-// TODO?: make a builder for HttpResponse
 impl HttpResponse {
-    pub fn status(mut self, status: HttpStatusCode) -> Self {
-        self.status = status;
-        self
-    }
-
-    pub fn header(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
-        self.headers.insert(key.into(), value.into());
-        self
-    }
-
-    pub fn headers<T>(mut self, headers: T) -> Self
-    where
-        T: IntoIterator<Item = (String, String)>,
-    {
-        self.headers = headers.into_iter().collect();
-        self
-    }
-
-    pub fn body(mut self, body: impl Into<String>) -> Self {
-        self.body = Some(body.into());
-        self
-    }
-
-    pub fn json(self, json: impl Into<String>) -> Self {
-        self.header("Content-Type", "application/json").body(json)
-    }
-
-    pub fn html(self, html: impl Into<String>) -> Self {
-        self.header("Content-Type", "text/html").body(html)
-    }
-
-    // TODO: .xml(xml: String) (final)
-    // TODO: .text(text: String) (final)
-
-    // TODO?: some way to send binary data
-}
-
-impl Display for HttpResponse {
-    /// Response:
     /// HTTP-Version Status-Code Reason-Phrase CRLF
-    /// headers CRLF
-    /// message-body
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Status line
-        write!(
-            f,
+    pub fn status_line(&self) -> Vec<u8> {
+        format!(
             "HTTP/1.1 {} {} {}",
             self.status.code(),
             self.status.phrase(),
             constants::CRLF
-        )?;
+        )
+        .into_bytes()
+    }
+
+    /// (
+    ///   key: value CRLF
+    /// )+
+    /// CRLF
+    pub fn headers(&self) -> Vec<u8> {
+        let crlf_bytes = constants::CRLF.as_bytes();
+
+        let mut buf = Vec::new();
 
         // Content length header
         let body_len = self.body.as_ref().map(|body| body.len()).unwrap_or(0);
-        write!(f, "Content-Length: {body_len}{}", constants::CRLF)?;
+        buf.extend_from_slice(b"Content-Length: ");
+        buf.extend_from_slice(body_len.to_string().as_bytes());
+        buf.extend_from_slice(crlf_bytes);
 
         self.headers
             .iter()
@@ -85,16 +56,20 @@ impl Display for HttpResponse {
 
                 true
             })
-            .map(|(key, value)| format!("{key}: {value}"))
-            .try_for_each(|header| write!(f, "{header}{}", constants::CRLF))?;
+            .for_each(|(key, value)| {
+                buf.extend_from_slice(key.as_bytes());
+                buf.extend_from_slice(b": ");
+                buf.extend_from_slice(value.as_bytes());
+                buf.extend_from_slice(crlf_bytes);
+            });
 
-        write!(f, "{}", constants::CRLF)?;
+        buf.extend_from_slice(crlf_bytes);
+        buf
+    }
 
-        if let Some(ref body) = self.body {
-            write!(f, "{body}{}", constants::CRLF)?;
-        }
-
-        Ok(())
+    /// message-body
+    pub fn body(&self) -> Option<&[u8]> {
+        self.body.as_deref()
     }
 }
 
@@ -128,7 +103,7 @@ impl Display for HttpResponse {
 
 impl<T> From<T> for HttpResponse
 where
-    T: Into<String>,
+    T: Into<Vec<u8>>,
 {
     fn from(body: T) -> Self {
         Self {
@@ -139,4 +114,9 @@ where
     }
 }
 
-// TODO: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // TODO: tests
+}
