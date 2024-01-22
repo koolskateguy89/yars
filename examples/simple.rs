@@ -1,5 +1,5 @@
-use http_server::{HttpRequest, HttpResponse, HttpServer};
 use log::LevelFilter;
+use yars::{HttpRequest, HttpResponse, HttpServer};
 
 fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
     HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#)

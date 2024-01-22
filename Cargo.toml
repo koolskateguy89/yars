@@ -1,6 +1,5 @@
 [package]
-# TODO: rename to YARS or whatever
-name = "http-server"
+name = "yars"
 version = "0.1.0"
 edition = "2021"
 
