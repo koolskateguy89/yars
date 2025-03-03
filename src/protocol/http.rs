@@ -1,5 +1,9 @@
+// TODO: move these to be under some /http
+use crate::{HttpRequest, HttpResponse};
+
 use super::Protocol;
 
+#[derive(Default)]
 pub struct HttpProtocol;
 
 impl HttpProtocol {
@@ -9,9 +13,9 @@ impl HttpProtocol {
 }
 
 impl Protocol for HttpProtocol {
-    type Req = HttpProtocol;
+    type Req = HttpRequest;
 
-    type Res = HttpProtocol;
+    type Res = HttpResponse;
 
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req> {
         todo!()

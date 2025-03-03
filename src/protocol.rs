@@ -29,3 +29,21 @@ pub type Handler<P>
 where
     P: Protocol,
 = dyn Sync + Send + Fn(P::Req) -> P::Res;
+
+pub trait ToHandler<P>
+where
+    P: Protocol,
+{
+    fn to_handler(self) -> Box<Handler<P>>;
+}
+
+impl<P, F, B> ToHandler<P> for F
+where
+    P: Protocol,
+    F: Sync + Send + Fn(P::Req) -> B + 'static,
+    B: Into<P::Res>,
+{
+    fn to_handler(self) -> Box<Handler<P>> {
+        Box::new(move |req| self(req).into())
+    }
+}
