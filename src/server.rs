@@ -9,12 +9,133 @@ use tokio::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
-use crate::constants;
+use crate::protocol::{self, HttpProtocol, Protocol};
 use crate::request::{HttpRequest, RequestMethod};
 use crate::response::HttpResponse;
+use crate::transport::{TcpTransport, Transport};
+use crate::{constants, Result};
+
+macro_rules! method_g {
+    ($method:ident, $request_method:ident) => {
+        #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
+        pub fn $method<H>(self, path: &str, handler: H) -> Self
+        where
+            H: protocol::ToHandler<P>,
+        {
+            self.route(path, RequestMethod::$request_method, handler)
+        }
+    };
+}
 
 // TODO: allow async
 type Handler = dyn Sync + Send + Fn(HttpRequest) -> HttpResponse;
+
+// TODO: directly import handler from protocol once done with generic impl.
+// TODO?: some sort of builder for picking transport/protocol
+// FIXME: (if possible) default wihtout specifying generic args
+// #[derive(Default)]
+pub struct YarsServer<T = TcpTransport, P = HttpProtocol>
+where
+    T: Transport,
+    P: Protocol,
+{
+    transport: T,
+    protocol: P,
+    handlers: HashMap<(String, RequestMethod), Box<protocol::Handler<P>>>,
+    default_handler: Option<Box<protocol::Handler<P>>>,
+}
+
+// impl Default for YarsServer<TcpTransport, HttpProtocol> {
+//     fn default() -> Self {
+//         YarsServer {
+//             transport: TcpTransport::default(),
+//             protocol: HttpProtocol::default(),
+//             handlers: HashMap::new(),
+//             default_handler: None,
+//         }
+//     }
+// }
+
+// impl<T, P> Default for YarsServer<T, P>
+// where
+//     T: Transport + Default,
+//     P: Protocol + Default,
+// {
+//     fn default() -> Self {
+//         YarsServer {
+//             transport: T::default(),
+//             protocol: P::default(),
+//             handlers: HashMap::new(),
+//             default_handler: None,
+//         }
+//     }
+// }
+
+impl<T, P> YarsServer<T, P>
+where
+    T: Transport,
+    P: Protocol,
+{
+    pub fn new(transport: T, protocol: P) -> Self {
+        Self {
+            transport,
+            protocol,
+            handlers: HashMap::new(),
+            default_handler: None,
+        }
+    }
+
+    /// Adds a route with the given `path` and `method` that will call the given `handler`
+    pub fn route<H>(mut self, path: &str, method: RequestMethod, handler: H) -> Self
+    where
+        H: protocol::ToHandler<P>,
+    {
+        self.handlers
+            .insert((path.to_string(), method), handler.to_handler());
+        self
+    }
+
+    method_g!(get, GET);
+    method_g!(post, POST);
+    method_g!(put, PUT);
+    method_g!(delete, DELETE);
+    method_g!(head, HEAD);
+    method_g!(options, OPTIONS);
+    method_g!(connect, CONNECT);
+    method_g!(trace, TRACE);
+    method_g!(patch, PATCH);
+
+    pub fn default_handler<H>(mut self, handler: H) -> Self
+    where
+        H: protocol::ToHandler<P>,
+    {
+        self.default_handler = Some(handler.to_handler());
+        self
+    }
+
+    pub async fn listen<A: ToSocketAddrs>(mut self, addr: A) -> Result<()> {
+        let addr = self.transport.bind(addr).await?;
+
+        info!("listening on {}", addr);
+
+        // TODO?: tokio spawn or whatever
+        loop {
+            let mut conn = self.transport.accept().await?;
+
+            let raw_request = self.transport.read(&mut conn).await?;
+            let request_string = String::from_utf8(raw_request).unwrap();
+            dbg!(request_string);
+
+            // TODO: handle request
+            let request = self.protocol.parse_request(&raw_request);
+            // TODO: find handler according to routing
+
+            // TODO: handle request
+
+            // TODO: return response with transport
+        }
+    }
+}
 
 // TODO: some sort of config file
 // TODO: split out this structs
