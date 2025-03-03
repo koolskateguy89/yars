@@ -9,17 +9,18 @@ fn okay(_req: HttpRequest) -> impl Into<HttpResponse> {
     "ok"
 }
 
-fn main() -> std::io::Result<()> {
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
     pretty_env_logger::formatted_builder()
         .filter_level(LevelFilter::Debug)
         .init();
 
-    let server = HttpServer::default()
+    HttpServer::default()
         .get("/", index)
         .get("/ok", okay)
         .get("/clickme", |_req: HttpRequest| {
             HttpResponse::Ok().html(include_str!("clickme.html"))
-        });
-
-    server.listen("127.0.0.1:8000")
+        })
+        .listen("127.0.0.1:8000")
+        .await
 }
