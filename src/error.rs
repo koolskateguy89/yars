@@ -7,6 +7,8 @@ pub enum Error {
 
     #[error(transparent)]
     Transport(#[from] TransportError),
+
+    // TODO: rest
 }
 
 #[derive(Debug, Error)]
@@ -14,7 +16,6 @@ pub enum TransportError {
     #[error("Transport error: {0}")]
     Generic(String),
 
-    // TODO: idk if want this transparent, need to test output
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
