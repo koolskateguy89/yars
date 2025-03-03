@@ -1,5 +1,7 @@
 use log::debug;
 
+use std::net::SocketAddr;
+
 use bytes::BytesMut;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -17,6 +19,7 @@ pub struct TcpTransport {
 
 impl TcpTransport {
     fn listener(&self) -> TransportResult<&TcpListener> {
+        // Error should never happen because this should only be used internally
         self.listener.as_ref().ok_or(TransportError::Tcp(
             "TCP listener not bound. Call `bind` first.".into(),
         ))
@@ -26,10 +29,10 @@ impl TcpTransport {
 impl Transport for TcpTransport {
     type Connection = TcpStream;
 
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()> {
+    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<SocketAddr> {
         let listener = TcpListener::bind(addr).await?;
         self.listener = Some(listener);
-        Ok(())
+        Ok(self.listener.as_ref().unwrap().local_addr()?)
     }
 
     async fn accept(&self) -> TransportResult<Self::Connection> {

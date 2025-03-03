@@ -1,9 +1,13 @@
 //! Transport layer
 //!
+//! Allows user-defined protocols in transport layer.
+//!
 //! Supported protocols:
 //! - TCP
 
 mod tcp;
+
+use std::net::SocketAddr;
 
 use tokio::net::ToSocketAddrs;
 
@@ -11,7 +15,7 @@ use crate::TransportError;
 
 pub use tcp::TcpTransport;
 
-type TransportResult<T> = std::result::Result<T, TransportError>;
+pub type TransportResult<T> = std::result::Result<T, TransportError>;
 
 /// Generic transport layer
 ///
@@ -22,7 +26,9 @@ pub trait Transport {
     type Connection;
 
     /// Bind the transport to its listening address.
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()>;
+    ///
+    /// Returns the local address that this tranport is bound to.
+    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<SocketAddr>;
 
     /// TODO
     async fn accept(&self) -> TransportResult<Self::Connection>;
