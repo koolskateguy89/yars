@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Form Example</title>
+</head>
+<body>
+  <form id="myForm">
+    <label for="urlInput">URL:</label>
+    <input type="text" id="urlInput" name="urlInput" required><br><br>
+
+    <label for="bodyInput">Body:</label>
+    <input type="text" id="bodyInput" name="bodyInput" required><br><br>
+
+    <input type="submit" value="Submit">
+  </form>
+
+  <script>
+    document.getElementById("myForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      var url = document.getElementById("urlInput").value;
+      var body = document.getElementById("bodyInput").value;
+
+      fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          body,
+        })
+      })
+      .then(response => response.json())
+      .then(data => console.log(data))
+      .catch(error => console.error(error));
+    });
+  </script>
+</body>
+</html>
