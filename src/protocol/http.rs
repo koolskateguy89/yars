@@ -1,16 +1,8 @@
 // TODO: move these to be under some /http
+use super::Protocol;
 use crate::{HttpRequest, HttpResponse};
 
-use super::Protocol;
-
-#[derive(Default)]
 pub struct HttpProtocol;
-
-impl HttpProtocol {
-    pub fn new() -> Self {
-        todo!()
-    }
-}
 
 impl Protocol for HttpProtocol {
     type Req = HttpRequest;
@@ -18,10 +10,21 @@ impl Protocol for HttpProtocol {
     type Res = HttpResponse;
 
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req> {
-        todo!()
+        // TODO: not make a String, instead just parse from bytes
+        let raw_string = String::from_utf8(raw.to_vec()).ok()?;
+
+        HttpRequest::parse_request(raw_string)
     }
 
     fn serialize_response(&self, response: &Self::Res) -> Vec<u8> {
-        todo!()
+        let mut buf = Vec::new();
+
+        buf.append(&mut response.status_line());
+        buf.append(&mut response.headers());
+        if let Some(body) = response.body() {
+            buf.extend_from_slice(body);
+        }
+
+        buf
     }
 }

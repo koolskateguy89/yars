@@ -3,8 +3,6 @@
 //! Supported protocols:
 //! - HTTP
 
-// TODO http impl
-
 mod http;
 
 pub use http::HttpProtocol;
@@ -17,6 +15,7 @@ pub trait Protocol {
     /// The response type for this protocol
     type Res;
 
+    // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req>;
 
