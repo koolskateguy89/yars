@@ -18,6 +18,8 @@ pub struct HttpResponse {
 
 impl HttpResponse {
     /// HTTP-Version Status-Code Reason-Phrase CRLF
+    ///
+    /// https://datatracker.ietf.org/doc/html/rfc2616#section-6.1
     pub fn status_line(&self) -> Vec<u8> {
         format!(
             "HTTP/1.1 {} {} {}",
@@ -118,5 +120,63 @@ where
 mod tests {
     use super::*;
 
-    // TODO: tests
+    #[test]
+    fn test_status_line() {
+        let response = HttpResponse {
+            status: HttpStatusCode::Ok,
+            headers: HashMap::new(),
+            body: None,
+        };
+
+        assert_eq!(response.status_line(), b"HTTP/1.1 200 OK \r\n");
+    }
+
+    #[test]
+    fn test_headers() {
+        let mut headers = HashMap::new();
+        headers.insert("Content-Type".to_string(), "text/html".to_string());
+
+        let response = HttpResponse {
+            status: HttpStatusCode::Ok,
+            headers,
+            body: None,
+        };
+
+        assert_eq!(
+            response.headers(),
+            b"Content-Length: 0\r\nContent-Type: text/html\r\n\r\n"
+        );
+    }
+
+    #[test]
+    fn test_filters_forbidden_headers() {
+        let mut headers = HashMap::new();
+        headers.insert("Proxy-Connection".to_string(), "keep-alive".to_string());
+        headers.insert(
+            "Sec-WebSocket-Key".to_string(),
+            "blah-blah-blah".to_string(),
+        );
+        // TODO: rest of forbidden headers
+        // TODO: test also contains allowed headers
+        // TODO: test removes case insensitive
+
+        let response = HttpResponse {
+            status: HttpStatusCode::Ok,
+            headers,
+            body: None,
+        };
+
+        assert_eq!(response.headers(), b"Content-Length: 0\r\n\r\n");
+    }
+
+    #[test]
+    fn test_body() {
+        let response = HttpResponse {
+            status: HttpStatusCode::Ok,
+            headers: HashMap::new(),
+            body: Some(b"Hello, World!".to_vec()),
+        };
+
+        assert_eq!(response.body(), Some(b"Hello, World!".as_ref()));
+    }
 }
