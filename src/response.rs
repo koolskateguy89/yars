@@ -7,7 +7,7 @@ pub use builder::HttpResponseBuilder;
 
 /// HTTP response
 ///
-/// https://tools.ietf.org/html/rfc2616#section-6
+/// <https://tools.ietf.org/html/rfc2616#section-6>
 #[derive(Clone, Debug)]
 pub struct HttpResponse {
     // TODO?: include HTTP version - idk if it should be included in response tho
@@ -19,7 +19,7 @@ pub struct HttpResponse {
 impl HttpResponse {
     /// HTTP-Version Status-Code Reason-Phrase CRLF
     ///
-    /// https://datatracker.ietf.org/doc/html/rfc2616#section-6.1
+    /// <https://datatracker.ietf.org/doc/html/rfc2616#section-6.1>
     pub fn status_line(&self) -> Vec<u8> {
         format!(
             "HTTP/1.1 {} {} {}",

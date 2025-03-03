@@ -10,7 +10,7 @@ macro_rules! status_codes {
     ) => {
 /// HTTP status codes
 ///
-/// https://tools.ietf.org/html/rfc2616#section-10
+/// <https://tools.ietf.org/html/rfc2616#section-10>
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HttpStatusCode {
     $(
