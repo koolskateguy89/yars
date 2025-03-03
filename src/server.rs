@@ -28,9 +28,9 @@ pub struct HttpServer {
 // fn index() -> HttpResponse {
 // will make the function into a struct that impls ToHandler
 
-// TODO: doc comments
 macro_rules! method {
     ($method:ident, $request_method:ident) => {
+        #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
         pub fn $method<T>(self, path: &str, handler: T) -> Self
         where
             T: ToHandler,
