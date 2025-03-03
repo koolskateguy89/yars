@@ -1,13 +1,13 @@
-use log::{debug, info};
+use log::debug;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::BytesMut;
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
-use super::Transport;
-use crate::{Result, TransportError};
+use super::{Transport, TransportResult};
+use crate::TransportError;
 
 /// Implementation of the transport layer for TCP connections
 #[derive(Default)]
@@ -16,28 +16,28 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
-    fn listener(&self) -> Result<&TcpListener> {
-        self.listener
-            .as_ref()
-            .ok_or(TransportError::Tcp("TCP listener not bound. Call `bind` first.".into()).into())
+    fn listener(&self) -> TransportResult<&TcpListener> {
+        self.listener.as_ref().ok_or(TransportError::Tcp(
+            "TCP listener not bound. Call `bind` first.".into(),
+        ))
     }
 }
 
 impl Transport for TcpTransport {
     type Connection = TcpStream;
 
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> Result<()> {
+    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()> {
         let listener = TcpListener::bind(addr).await?;
         self.listener = Some(listener);
         Ok(())
     }
 
-    async fn accept(&self) -> Result<Self::Connection> {
+    async fn accept(&self) -> TransportResult<Self::Connection> {
         let (stream, _) = self.listener()?.accept().await?;
         Ok(stream)
     }
 
-    async fn read(&self, stream: &mut Self::Connection) -> Result<Vec<u8>> {
+    async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
         let mut buf = BytesMut::with_capacity(1024);
         stream.read_buf(&mut buf).await?;
 
@@ -54,11 +54,11 @@ impl Transport for TcpTransport {
         Ok(buf.to_vec())
     }
 
-    async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> Result<()> {
+    async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
         stream.write_all(response).await.map_err(|err| err.into())
     }
 
-    async fn close(&self, _stream: Self::Connection) -> Result<()> {
+    async fn close(&self, _stream: Self::Connection) -> TransportResult<()> {
         todo!()
     }
 }
