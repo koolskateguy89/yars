@@ -14,7 +14,7 @@ mod version;
 pub use error::*;
 pub use request::HttpRequest;
 pub use response::HttpResponse;
-pub use server::{HttpServer, YarsServer};
+pub use server::YarsServer;
 pub use status::HttpStatusCode;
 pub use version::HttpVersion;
 

@@ -47,13 +47,25 @@ where
         self.default_handler = Some(handler.to_handler());
     }
 
-    pub(crate) fn get_request_handler(&self, routing_key: P::RoutingKey) -> Option<&Handler<P>> {
+    pub(crate) fn get_request_handler(&self, routing_key: &P::RoutingKey) -> Option<&Handler<P>> {
         let boxed_handler = self
             .routes
-            .get(&routing_key)
+            .get(routing_key)
             .or(self.default_handler.as_ref());
 
         // Extract a reference to the handler from the Box
         boxed_handler.map(AsRef::as_ref)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // use super::*;
+
+    // TODO
+
+    #[test]
+    fn test_default_handler() {
+        // TODO
     }
 }
