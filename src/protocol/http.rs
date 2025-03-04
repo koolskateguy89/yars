@@ -10,9 +10,7 @@ impl Protocol for HttpProtocol {
 
     type Res = HttpResponse;
 
-    // FIXME?: i dont like the debug display for this - I want [method] [uri]
-    // but it shows ("uri", method)
-    type RoutingKey = (String, RequestMethod);
+    type RoutingKey = HttpRoutingKey;
 
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req> {
         // TODO: not make a String, instead just parse from bytes
@@ -34,6 +32,31 @@ impl Protocol for HttpProtocol {
     }
 
     fn extract_routing_key(&self, req: &Self::Req) -> Self::RoutingKey {
-        (req.uri.clone(), req.method)
+        HttpRoutingKey {
+            uri: req.uri.clone(),
+            method: req.method,
+        }
+    }
+}
+
+/// HTTP routing is based on the URI and the request method
+#[derive(PartialEq, Eq, Hash)]
+pub struct HttpRoutingKey {
+    uri: String,
+    method: RequestMethod,
+}
+
+impl std::fmt::Display for HttpRoutingKey {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?} {}", self.method, self.uri)
+    }
+}
+
+impl From<(&str, RequestMethod)> for HttpRoutingKey {
+    fn from((uri, method): (&str, RequestMethod)) -> Self {
+        Self {
+            uri: uri.to_string(),
+            method,
+        }
     }
 }

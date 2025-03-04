@@ -20,7 +20,7 @@ pub trait Protocol {
 
     /// The routing key type for this protocol
     // TODO?: change Debug to Display
-    type RoutingKey: Eq + std::hash::Hash + std::fmt::Debug;
+    type RoutingKey: Eq + std::hash::Hash + std::fmt::Display;
 
     // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request

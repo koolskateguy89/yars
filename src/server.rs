@@ -13,6 +13,8 @@ use crate::Result;
 
 // todo: some sort of trace/id for each connection for easier log reading
 
+// TODO: sort out imports
+
 // TODO: some sort of config file
 
 // TODO: directly import handler from protocol once done with generic impl.
@@ -59,11 +61,12 @@ where
     }
 
     /// Adds a route with the given `path` and `method` that will call the given `handler`
-    pub fn route<H>(mut self, routing_key: P::RoutingKey, handler: H) -> Self
+    pub fn route<RK, H>(mut self, routing_key: RK, handler: H) -> Self
     where
+        RK: Into<P::RoutingKey>,
         H: ToHandler<P>,
     {
-        self.router.add_route(routing_key, handler);
+        self.router.add_route(routing_key.into(), handler);
         self
     }
 
@@ -100,13 +103,13 @@ where
 
             // Extract routing key using protocol layer
             let routing_key = self.protocol.extract_routing_key(&request);
-            info!("{:?}", routing_key);
+            info!("{}", routing_key);
 
             // TODO?: could impl middleware here
 
             // Get handler according to routing (according to protocol layer)
             let Some(handler) = self.router.get_request_handler(&routing_key) else {
-                debug!("No handler found for: {:?}", routing_key);
+                debug!("No handler found for: {}", routing_key);
                 continue;
             };
 
@@ -137,7 +140,7 @@ macro_rules! http_method {
         where
             H: ToHandler<HttpProtocol>,
         {
-            self.route((path.into(), RequestMethod::$request_method), handler)
+            self.route((path, RequestMethod::$request_method), handler)
         }
     };
 }

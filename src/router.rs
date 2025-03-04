@@ -15,8 +15,14 @@ where
     P: Protocol,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let keys = self
+            .routes
+            .keys()
+            .map(|k| format!("{}", k))
+            .collect::<Vec<_>>();
+
         f.debug_struct("Router")
-            .field("routes", &self.routes.keys())
+            .field("routes", &keys)
             .field("default_handler", &self.default_handler.is_some())
             .finish()
     }
