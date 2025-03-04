@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::{constants, HttpStatusCode};
 
 mod builder;
+
 pub use builder::HttpResponseBuilder;
 
 /// HTTP response

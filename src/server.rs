@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use log::{debug, info};
 use std::collections::HashMap;
 
+use log::{debug, info};
 use tokio::net::ToSocketAddrs;
 
 use crate::protocol::{Handler, HttpProtocol, Protocol, ToHandler};
@@ -15,7 +15,6 @@ use crate::Result;
 // TODO: builder for build YarsServer (picking transport/protocol)
 
 // TODO: some sort of config file
-// TODO: sort out imports
 
 // TODO: doc comment with example usage
 pub struct YarsServer<T, P>

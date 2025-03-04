@@ -5,13 +5,13 @@
 //! Supported protocols:
 //! - TCP
 
-mod tcp;
-
 use std::net::SocketAddr;
 
 use tokio::net::ToSocketAddrs;
 
 use crate::TransportError;
+
+mod tcp;
 
 pub use tcp::TcpTransport;
 
