@@ -19,7 +19,6 @@ pub trait Protocol {
     type Res;
 
     /// The routing key type for this protocol
-    // TODO?: change Debug to Display
     type RoutingKey: Eq + std::hash::Hash + std::fmt::Display;
 
     // TODO: change to result, or maybe result<option>, idk

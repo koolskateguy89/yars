@@ -26,9 +26,7 @@ pub trait Transport {
     type Connection;
 
     /// Bind the transport to its listening address.
-    ///
-    /// Returns the local address that this tranport is bound to.
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<SocketAddr>;
+    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()>;
 
     /// TODO
     async fn accept(&self) -> TransportResult<Self::Connection>;

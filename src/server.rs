@@ -11,12 +11,17 @@ use crate::router::Router;
 use crate::transport::{TcpTransport, Transport};
 use crate::Result;
 
-// TODO: some sort of trace/id for each connection for easier log reading
 // TODO: builder for build YarsServer (picking transport/protocol)
+// TODO: async
+// TODO: some sort of trace/id for each connection for easier log reading
 
 // TODO: some sort of config file
 
 // TODO: doc comment with example usage
+/// Logging should be done in the transport.
+///
+/// Server events are logged using the [log] crate. A log implementation must be provided by the user.
+/// For example, [pretty_env_logger].
 pub struct YarsServer<T, P>
 where
     T: Transport,
@@ -76,56 +81,52 @@ where
         // TODO?: debug print type of transport and protocol
         debug!("{:#?}", self.router);
 
-        let addr = self.transport.bind(addr).await?;
-
-        info!("listening on {}", addr);
+        self.transport.bind(addr).await?;
 
         // TODO?: tokio spawn or whatever for async
         loop {
             // Accept connection with transport layer
-            let mut conn = self.transport.accept().await?;
+            let conn = self.transport.accept().await?;
 
-            // TODO: break this down into smaller functions
-
-            // Read request from connection with transport layer
-            let raw_request = self.transport.read(&mut conn).await?;
-            debug!("bytes read from connection {}: {}", addr, raw_request.len());
-
-            // Parse request bytes using protocol layer
-            let Some(request) = self.protocol.parse_request(&raw_request) else {
-                debug!("Failed to parse request");
-                continue;
-            };
-
-            // Extract routing key using protocol layer
-            let routing_key = self.protocol.extract_routing_key(&request);
-            info!("{}", routing_key);
-
-            // TODO?: could impl middleware here
-
-            // Get handler according to routing (according to protocol layer)
-            let Some(handler) = self.router.get_request_handler(&routing_key) else {
-                debug!("No handler found for: {}", routing_key);
-                continue;
-            };
-
-            // Handle request by calling handler
-            let response = handler(request);
-
-            // Serialize response using protocol layer
-            let response_bytes = self.protocol.serialize_response(&response);
-            debug!(
-                "writing bytes to connection {}: {}",
-                addr,
-                response_bytes.len()
-            );
-
-            // Write response bytes to connection with transport layer
-            self.transport.write(&mut conn, &response_bytes).await?;
+            self.handle_connection(conn).await?;
         }
 
         // TODO?
         // self.transport.close(conn).await?;
+    }
+
+    async fn handle_connection(&mut self, mut conn: T::Connection) -> Result<()> {
+        // Read request from connection with transport layer
+        let raw_request = self.transport.read(&mut conn).await?;
+
+        // Parse request bytes using protocol layer
+        let Some(request) = self.protocol.parse_request(&raw_request) else {
+            debug!("Failed to parse request");
+            return Ok(());
+        };
+
+        // Extract routing key using protocol layer
+        let routing_key = self.protocol.extract_routing_key(&request);
+        info!("{}", routing_key);
+
+        // TODO?: could impl middleware here
+
+        // Get handler according to routing (according to protocol layer)
+        let Some(handler) = self.router.get_request_handler(&routing_key) else {
+            debug!("No handler found for: {}", routing_key);
+            return Ok(());
+        };
+
+        // Handle request by calling handler
+        let response = handler(request);
+
+        // Serialize response using protocol layer
+        let response_bytes = self.protocol.serialize_response(&response);
+
+        // Write response bytes to connection with transport layer
+        self.transport.write(&mut conn, &response_bytes).await?;
+
+        Ok(())
     }
 }
 

@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 
+use log::{debug, info};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -25,25 +26,40 @@ impl TcpTransport {
             "TCP listener not bound. Call `bind` first.".into(),
         ))
     }
+
+    fn addr(&self) -> TransportResult<SocketAddr> {
+        Ok(self.listener()?.local_addr()?)
+    }
 }
 
 impl Transport for TcpTransport {
     type Connection = TcpStream;
 
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<SocketAddr> {
+    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()> {
         let listener = TcpListener::bind(addr).await?;
+        info!(
+            "listening for TCP connections on {}",
+            listener.local_addr()?
+        );
         self.listener = Some(listener);
-        Ok(self.listener.as_ref().unwrap().local_addr()?)
+        Ok(())
     }
 
     async fn accept(&self) -> TransportResult<Self::Connection> {
         let (stream, _) = self.listener()?.accept().await?;
+        debug!("accepted TCP connection from {}", stream.peer_addr()?);
         Ok(stream)
     }
 
     async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
         let mut buf = Vec::with_capacity(1024);
         stream.read_buf(&mut buf).await?;
+
+        debug!(
+            "bytes read from TCP connection {}: {}",
+            self.addr()?,
+            buf.len(),
+        );
 
         if buf.is_empty() {
             return Ok(vec![]);
@@ -53,6 +69,11 @@ impl Transport for TcpTransport {
     }
 
     async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
+        debug!(
+            "writing bytes to TCP connection {}: {}",
+            self.addr()?,
+            response.len(),
+        );
         stream.write_all(response).await.map_err(|err| err.into())
     }
 
