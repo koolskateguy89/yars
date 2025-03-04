@@ -1,6 +1,6 @@
-// TODO: move these to be under some /http
 use super::Protocol;
-use crate::{HttpRequest, HttpResponse};
+// TODO: move these to be under some /http
+use crate::{request::RequestMethod, HttpRequest, HttpResponse};
 
 pub struct HttpProtocol;
 
@@ -8,6 +8,10 @@ impl Protocol for HttpProtocol {
     type Req = HttpRequest;
 
     type Res = HttpResponse;
+
+    // FIXME?: i dont like the debug display for this - I want [method] [uri]
+    // but it shows ("uri", method)
+    type RoutingKey = (String, RequestMethod);
 
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req> {
         // TODO: not make a String, instead just parse from bytes
@@ -26,5 +30,9 @@ impl Protocol for HttpProtocol {
         }
 
         buf
+    }
+
+    fn extract_routing_key(&self, req: &Self::Req) -> Self::RoutingKey {
+        (req.uri.clone(), req.method)
     }
 }

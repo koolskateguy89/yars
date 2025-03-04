@@ -1,5 +1,3 @@
-use log::debug;
-
 use std::net::SocketAddr;
 
 use tokio::{
@@ -17,6 +15,10 @@ pub struct TcpTransport {
 }
 
 impl TcpTransport {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     fn listener(&self) -> TransportResult<&TcpListener> {
         // Error should never happen because this should only be used internally
         self.listener.as_ref().ok_or(TransportError::Tcp(
@@ -46,12 +48,6 @@ impl Transport for TcpTransport {
         if buf.is_empty() {
             return Ok(vec![]);
         }
-
-        debug!(
-            "bytes read from connection with {}: {}",
-            stream.peer_addr()?,
-            buf.len()
-        );
 
         Ok(buf.to_vec())
     }

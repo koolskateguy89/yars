@@ -11,22 +11,23 @@ use tokio::{
 use crate::protocol::{self, HttpProtocol, Protocol};
 use crate::request::{HttpRequest, RequestMethod};
 use crate::response::HttpResponse;
+use crate::router::Router;
 use crate::transport::{TcpTransport, Transport};
 use crate::Result;
 
-macro_rules! method_g {
+macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
         pub fn $method<H>(self, path: &str, handler: H) -> Self
         where
-            H: protocol::ToHandler<P>,
+            H: protocol::ToHandler<HttpProtocol>,
         {
-            self.route(path, RequestMethod::$request_method, handler)
+            self.route((path.into(), RequestMethod::$request_method), handler)
         }
     };
 }
 
-// TODO! next ROUTING
+// TODO! (fixme) breaks after 1 connection
 
 // TODO: allow async
 type Handler = dyn Sync + Send + Fn(HttpRequest) -> HttpResponse;
@@ -41,6 +42,7 @@ where
 {
     transport: T,
     protocol: P,
+    router: Router<P>,
     handlers: HashMap<(String, RequestMethod), Box<protocol::Handler<P>>>,
     default_handler: Option<Box<protocol::Handler<P>>>,
 }
@@ -48,8 +50,9 @@ where
 impl YarsServer<TcpTransport, HttpProtocol> {
     pub fn default_server() -> Self {
         YarsServer {
-            transport: TcpTransport::default(),
+            transport: TcpTransport::new(),
             protocol: HttpProtocol,
+            router: Router::new(),
             handlers: HashMap::new(),
             default_handler: None,
         }
@@ -91,63 +94,100 @@ where
         Self {
             transport,
             protocol,
+            router: Router::new(),
             handlers: HashMap::new(),
             default_handler: None,
         }
     }
 
     /// Adds a route with the given `path` and `method` that will call the given `handler`
-    pub fn route<H>(mut self, path: &str, method: RequestMethod, handler: H) -> Self
+    pub fn route<H>(mut self, routing_key: P::RoutingKey, handler: H) -> Self
     where
         H: protocol::ToHandler<P>,
     {
-        self.handlers
-            .insert((path.to_string(), method), handler.to_handler());
+        self.router.add_route(routing_key, handler);
         self
     }
-
-    method_g!(get, GET);
-    method_g!(post, POST);
-    method_g!(put, PUT);
-    method_g!(delete, DELETE);
-    method_g!(head, HEAD);
-    method_g!(options, OPTIONS);
-    method_g!(connect, CONNECT);
-    method_g!(trace, TRACE);
-    method_g!(patch, PATCH);
 
     pub fn default_handler<H>(mut self, handler: H) -> Self
     where
         H: protocol::ToHandler<P>,
     {
-        self.default_handler = Some(handler.to_handler());
+        self.router.set_default_handler(handler);
         self
     }
 
     pub async fn listen<A: ToSocketAddrs>(mut self, addr: A) -> Result<()> {
+        // TODO?: debug print type of transport and protocol
+        debug!("{:?}", self.router);
+
         let addr = self.transport.bind(addr).await?;
 
         info!("listening on {}", addr);
 
         // TODO?: tokio spawn or whatever
         loop {
+            // Accept connection with transport layer
             let mut conn = self.transport.accept().await?;
 
+            // Read request from connection with transport layer
             let raw_request = self.transport.read(&mut conn).await?;
-            let request_string = String::from_utf8(raw_request.clone()).unwrap();
-            dbg!(request_string);
 
-            let request = self.protocol.parse_request(&raw_request);
+            debug!("bytes read from connection {}: {}", addr, raw_request.len());
 
-            // TODO: find handler according to routing
+            // Parse request bytes using protocol layer
+            let Some(request) = self.protocol.parse_request(&raw_request) else {
+                return Ok(());
+            };
 
-            // TODO: handle request
+            // Extract routing key using protocol layer
+            let routing_key = self.protocol.extract_routing_key(&request);
+            info!("{:?}", routing_key);
 
-            // TODO: deserialise response
+            // Get handler according to routing (according to protocl layer)
+            let Some(handler) = self
+                .router
+                .get_request_handler(self.protocol.extract_routing_key(&request))
+            else {
+                debug!("No handler found for: {:?}", routing_key);
+                return Ok(());
+            };
 
-            // TODO: return response with transport
+            // Handle request by calling handler
+            let response = handler(request);
+
+            // Serialize response using protocol layer
+            let response_bytes = self.protocol.serialize_response(&response);
+
+            debug!(
+                "writing bytes to connection {}: {}",
+                addr,
+                response_bytes.len()
+            );
+
+            // Write response bytes to connection with transport layer
+            self.transport.write(&mut conn, &response_bytes).await?;
         }
+
+        // TODO?
+        // self.transport.close(conn).await?;
     }
+}
+
+/// HTTP specific methods
+impl<T> YarsServer<T, HttpProtocol>
+where
+    T: Transport,
+{
+    http_method!(get, GET);
+    http_method!(post, POST);
+    http_method!(put, PUT);
+    http_method!(delete, DELETE);
+    http_method!(head, HEAD);
+    http_method!(options, OPTIONS);
+    http_method!(connect, CONNECT);
+    http_method!(trace, TRACE);
+    http_method!(patch, PATCH);
 }
 
 // TODO: some sort of config file

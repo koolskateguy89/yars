@@ -5,6 +5,7 @@ pub mod protocol;
 pub mod request;
 // TODO?: make not public?
 pub mod response;
+mod router;
 mod server;
 mod status;
 pub mod transport;

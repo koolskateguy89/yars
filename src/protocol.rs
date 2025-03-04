@@ -18,12 +18,19 @@ pub trait Protocol {
     /// The response type for this protocol
     type Res;
 
+    /// The routing key type for this protocol
+    // TODO?: change Debug to Display
+    type RoutingKey: Eq + std::hash::Hash + std::fmt::Debug;
+
     // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req>;
 
     /// Convert a strongly-typed response into raw bytes
     fn serialize_response(&self, response: &Self::Res) -> Vec<u8>;
+
+    /// Extract a routing key from a request.
+    fn extract_routing_key(&self, req: &Self::Req) -> Self::RoutingKey;
 }
 
 // TODO: allow async
