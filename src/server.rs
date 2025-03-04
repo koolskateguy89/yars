@@ -31,6 +31,7 @@ where
 }
 
 impl YarsServer<TcpTransport, HttpProtocol> {
+    /// Instantiates a HTTP server that accepts TCP connections
     pub fn default_server() -> Self {
         YarsServer {
             transport: TcpTransport::new(),
