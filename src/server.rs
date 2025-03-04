@@ -11,14 +11,12 @@ use crate::router::Router;
 use crate::transport::{TcpTransport, Transport};
 use crate::Result;
 
-// todo: some sort of trace/id for each connection for easier log reading
-
-// TODO: sort out imports
+// TODO: some sort of trace/id for each connection for easier log reading
+// TODO: builder for build YarsServer (picking transport/protocol)
 
 // TODO: some sort of config file
+// TODO: sort out imports
 
-// TODO: directly import handler from protocol once done with generic impl.
-// TODO?: some sort of builder for picking transport/protocol
 // TODO: doc comment with example usage
 pub struct YarsServer<T, P>
 where
