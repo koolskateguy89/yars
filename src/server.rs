@@ -11,11 +11,11 @@ use crate::router::Router;
 use crate::transport::{TcpTransport, Transport};
 use crate::Result;
 
-// TODO: builder for build YarsServer (picking transport/protocol)
 // TODO: async
 // TODO: some sort of trace/id for each connection for easier log reading
 
 // TODO: some sort of config file
+// TODO? type safe builder for build YarsServer when have more options
 
 // TODO: doc comment with example usage
 /// Logging should be done in the transport.

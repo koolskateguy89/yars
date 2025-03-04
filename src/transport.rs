@@ -5,8 +5,6 @@
 //! Supported protocols:
 //! - TCP
 
-use std::net::SocketAddr;
-
 use tokio::net::ToSocketAddrs;
 
 use crate::TransportError;
@@ -26,6 +24,8 @@ pub trait Transport {
     type Connection;
 
     /// Bind the transport to its listening address.
+    ///
+    /// Should provide a detailed log message saying that the transport is listening on the given address.
     async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()>;
 
     /// TODO
