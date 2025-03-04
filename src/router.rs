@@ -39,28 +39,22 @@ where
         }
     }
 
-    pub(crate) fn add_route<H>(&mut self, routing_key: P::RoutingKey, handler: H)
-    where
-        H: ToHandler<P>,
-    {
+    pub(crate) fn add_route(&mut self, routing_key: P::RoutingKey, handler: impl ToHandler<P>) {
         self.routes.insert(routing_key, handler.to_handler());
     }
 
-    pub(crate) fn set_default_handler<H>(&mut self, handler: H)
-    where
-        H: ToHandler<P>,
-    {
+    pub(crate) fn set_default_handler(&mut self, handler: impl ToHandler<P>) {
         self.default_handler = Some(handler.to_handler());
     }
 
     pub(crate) fn get_request_handler(&self, routing_key: &P::RoutingKey) -> Option<&Handler<P>> {
-        let boxed_handler = self
+        let maybe_boxed_handler = self
             .routes
             .get(routing_key)
             .or(self.default_handler.as_ref());
 
         // Extract a reference to the handler from the Box
-        boxed_handler.map(AsRef::as_ref)
+        maybe_boxed_handler.map(|boxed_handler| boxed_handler.as_ref())
     }
 }
 

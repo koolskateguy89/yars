@@ -58,20 +58,17 @@ where
         }
     }
 
-    /// Adds a route with the given `path` and `method` that will call the given `handler`
-    pub fn route<RK, H>(mut self, routing_key: RK, handler: H) -> Self
-    where
-        RK: Into<P::RoutingKey>,
-        H: ToHandler<P>,
-    {
+    /// Adds a route with key `routing_key` that will call the given `handler`
+    pub fn route(
+        mut self,
+        routing_key: impl Into<P::RoutingKey>,
+        handler: impl ToHandler<P>,
+    ) -> Self {
         self.router.add_route(routing_key.into(), handler);
         self
     }
 
-    pub fn default_handler<H>(mut self, handler: H) -> Self
-    where
-        H: ToHandler<P>,
-    {
+    pub fn default_handler(mut self, handler: impl ToHandler<P>) -> Self {
         self.router.set_default_handler(handler);
         self
     }
@@ -84,10 +81,12 @@ where
 
         info!("listening on {}", addr);
 
-        // TODO?: tokio spawn or whatever
+        // TODO?: tokio spawn or whatever for async
         loop {
             // Accept connection with transport layer
             let mut conn = self.transport.accept().await?;
+
+            // TODO: break this down into smaller functions
 
             // Read request from connection with transport layer
             let raw_request = self.transport.read(&mut conn).await?;
@@ -95,7 +94,7 @@ where
 
             // Parse request bytes using protocol layer
             let Some(request) = self.protocol.parse_request(&raw_request) else {
-                debug!("Failed to parse request; continuing to next connection");
+                debug!("Failed to parse request");
                 continue;
             };
 
@@ -134,10 +133,7 @@ where
 macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
-        pub fn $method<H>(self, path: &str, handler: H) -> Self
-        where
-            H: ToHandler<HttpProtocol>,
-        {
+        pub fn $method(self, path: &str, handler: impl ToHandler<HttpProtocol>) -> Self {
             self.route((path, RequestMethod::$request_method), handler)
         }
     };
@@ -160,6 +156,7 @@ where
     http_method!(connect, CONNECT);
     http_method!(trace, TRACE);
     http_method!(patch, PATCH);
+    // TODO?: files
 }
 
 // TODO: allow handlers that return Result<JSON, Error(?)>
