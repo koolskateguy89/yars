@@ -1,12 +1,9 @@
 #![allow(dead_code)]
 
-use std::collections::HashMap;
-
 use log::{debug, info};
 use tokio::net::ToSocketAddrs;
 
-use crate::protocol::{Handler, HttpProtocol, Protocol, ToHandler};
-use crate::request::RequestMethod;
+use crate::protocol::{HttpProtocol, Protocol, ToHandler};
 use crate::router::Router;
 use crate::transport::{TcpTransport, Transport};
 use crate::Result;
@@ -30,8 +27,6 @@ where
     transport: T,
     protocol: P,
     router: Router<P>,
-    handlers: HashMap<(String, RequestMethod), Box<Handler<P>>>,
-    default_handler: Option<Box<Handler<P>>>,
 }
 
 impl YarsServer<TcpTransport, HttpProtocol> {
@@ -41,8 +36,6 @@ impl YarsServer<TcpTransport, HttpProtocol> {
             transport: TcpTransport::new(),
             protocol: HttpProtocol,
             router: Router::new(),
-            handlers: HashMap::new(),
-            default_handler: None,
         }
     }
 }
@@ -57,8 +50,6 @@ where
             transport,
             protocol,
             router: Router::new(),
-            handlers: HashMap::new(),
-            default_handler: None,
         }
     }
 
