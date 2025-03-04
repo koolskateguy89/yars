@@ -28,6 +28,7 @@ macro_rules! http_method {
 }
 
 // TODO! (fixme) breaks after 1 connection
+// todo: some sort of trace/id for each connection for easier log reading
 
 // TODO: allow async
 type Handler = dyn Sync + Send + Fn(HttpRequest) -> HttpResponse;
@@ -58,32 +59,6 @@ impl YarsServer<TcpTransport, HttpProtocol> {
         }
     }
 }
-
-// impl Default for YarsServer<TcpTransport, HttpProtocol> {
-//     fn default() -> Self {
-//         YarsServer {
-//             transport: TcpTransport::default(),
-//             protocol: HttpProtocol::default(),
-//             handlers: HashMap::new(),
-//             default_handler: None,
-//         }
-//     }
-// }
-
-// impl<T, P> Default for YarsServer<T, P>
-// where
-//     T: Transport + Default,
-//     P: Protocol + Default,
-// {
-//     fn default() -> Self {
-//         YarsServer {
-//             transport: T::default(),
-//             protocol: P::default(),
-//             handlers: HashMap::new(),
-//             default_handler: None,
-//         }
-//     }
-// }
 
 impl<T, P> YarsServer<T, P>
 where
@@ -119,7 +94,7 @@ where
 
     pub async fn listen<A: ToSocketAddrs>(mut self, addr: A) -> Result<()> {
         // TODO?: debug print type of transport and protocol
-        debug!("{:?}", self.router);
+        debug!("{:#?}", self.router);
 
         let addr = self.transport.bind(addr).await?;
 
@@ -137,7 +112,8 @@ where
 
             // Parse request bytes using protocol layer
             let Some(request) = self.protocol.parse_request(&raw_request) else {
-                return Ok(());
+                debug!("Failed to parse request; continuing to next connection");
+                continue;
             };
 
             // Extract routing key using protocol layer
@@ -150,7 +126,7 @@ where
                 .get_request_handler(self.protocol.extract_routing_key(&request))
             else {
                 debug!("No handler found for: {:?}", routing_key);
-                return Ok(());
+                continue;
             };
 
             // Handle request by calling handler
