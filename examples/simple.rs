@@ -1,5 +1,6 @@
 use log::LevelFilter;
-use yars::{HttpRequest, HttpResponse, HttpServer};
+use yars::YarsServer;
+use yars::{HttpRequest, HttpResponse};
 
 fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
     HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#)
@@ -10,12 +11,12 @@ fn okay(_req: HttpRequest) -> impl Into<HttpResponse> {
 }
 
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> yars::Result<()> {
     pretty_env_logger::formatted_builder()
         .filter_level(LevelFilter::Debug)
         .init();
 
-    HttpServer::default()
+    YarsServer::default_server()
         .get("/", index)
         .get("/ok", okay)
         .get("/clickme", |_req: HttpRequest| {
