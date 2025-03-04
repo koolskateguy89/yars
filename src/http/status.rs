@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{response::HttpResponseBuilder, HttpResponse};
+use super::{response_builder::HttpResponseBuilder, HttpResponse};
 
 macro_rules! status_codes {
     (
@@ -34,8 +34,19 @@ impl HttpStatusCode {
             )+
         }
     }
+}
 
-    // TODO: from num
+impl TryFrom<u16> for HttpStatusCode {
+    type Error = &'static str;
+
+    fn try_from(code: u16) -> Result<Self, Self::Error> {
+        match code {
+            $(
+                $num => Ok(Self::$name),
+            )+
+            _ => Err("Invalid or not implemented status code"),
+        }
+    }
 }
 
 impl HttpResponse {

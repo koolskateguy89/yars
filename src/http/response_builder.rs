@@ -1,10 +1,8 @@
 use std::collections::HashMap;
 
-use super::HttpResponse;
-use crate::HttpStatusCode;
+use super::{HttpResponse, HttpStatusCode};
 
 pub struct HttpResponseBuilder {
-    // TODO?: include HTTP version - idk if it should be included in response tho
     pub(crate) status: HttpStatusCode,
     // TODO?: Vec<u8> instead of String?
     pub(crate) headers: HashMap<String, String>,
@@ -58,7 +56,7 @@ impl HttpResponseBuilder {
 
     /// Adds header `Content-Type: application/xml`.
     ///
-    /// If you want `text/xml`, and a custom header instead with [`Self::header()`]
+    /// If you want `text/xml`, add a custom header instead with [`Self::header()`]
     pub fn xml(self, xml: impl Into<Vec<u8>>) -> HttpResponse {
         self.header("Content-Type", "application/xml").body(xml)
     }

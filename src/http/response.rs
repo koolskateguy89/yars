@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{constants, HttpStatusCode};
+use crate::constants;
 
-mod builder;
-
-pub use builder::HttpResponseBuilder;
+use super::response_builder::HttpResponseBuilder;
+use super::HttpStatusCode;
 
 /// HTTP response
 ///

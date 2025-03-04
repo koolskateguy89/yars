@@ -3,10 +3,12 @@
 use log::{debug, info};
 use tokio::net::ToSocketAddrs;
 
-use crate::protocol::{HttpProtocol, Protocol, ToHandler};
-use crate::router::Router;
-use crate::transport::{TcpTransport, Transport};
-use crate::Result;
+use crate::{
+    protocol::{HttpProtocol, Protocol, ToHandler},
+    router::Router,
+    transport::{TcpTransport, Transport},
+    Result,
+};
 
 // TODO: async
 // TODO: some sort of trace/id for each connection for easier log reading
@@ -125,7 +127,7 @@ macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
         pub fn $method(self, path: &str, handler: impl ToHandler<HttpProtocol>) -> Self {
-            self.route((path, RequestMethod::$request_method), handler)
+            self.route((path, crate::http::RequestMethod::$request_method), handler)
         }
     };
 }

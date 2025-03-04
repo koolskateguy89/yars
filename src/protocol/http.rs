@@ -1,6 +1,5 @@
 use super::Protocol;
-// TODO: move these to be under some /http
-use crate::{request::RequestMethod, HttpRequest, HttpResponse};
+use crate::http::{HttpRequest, HttpResponse, RequestMethod};
 
 /// HTTP 1.1
 pub struct HttpProtocol;

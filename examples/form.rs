@@ -1,5 +1,8 @@
 use log::LevelFilter;
-use yars::{HttpRequest, HttpResponse, YarsServer};
+use yars::{
+    http::{HttpRequest, HttpResponse},
+    YarsServer,
+};
 
 fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
     HttpResponse::Ok().html(include_str!("form/index.html"))

@@ -1,10 +1,10 @@
 use log::LevelFilter;
 use yars::{
+    http::{HttpRequest, HttpResponse},
     protocol::HttpProtocol,
     transport::{Transport, TransportResult},
     YarsServer,
 };
-use yars::{HttpRequest, HttpResponse};
 
 fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
     HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#)
@@ -19,10 +19,7 @@ struct TestTransport;
 impl Transport for TestTransport {
     type Connection = i32;
 
-    async fn bind(
-        &mut self,
-        addr: impl tokio::net::ToSocketAddrs,
-    ) -> TransportResult<std::net::SocketAddr> {
+    async fn bind(&mut self, addr: impl tokio::net::ToSocketAddrs) -> TransportResult<()> {
         todo!()
     }
 
