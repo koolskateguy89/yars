@@ -7,7 +7,10 @@ mod http;
 
 pub use http::HttpProtocol;
 
-// TODO?: rename, things like TCP are protocols
+// TODO?: rename, things like TCP are protocols. maybe Codec?
+/// Message/communication protocol layer.
+///
+/// Responsible for converting raw bytes into higher-level request/response objects.
 pub trait Protocol {
     /// The request type for this protocol (e.g., HttpRequest, WsRequest, etc.)
     type Req;

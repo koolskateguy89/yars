@@ -1,7 +1,9 @@
 mod constants;
 mod error;
 pub mod protocol;
+// TODO?: make not public? - i need to make HTTPReq/Res public though
 pub mod request;
+// TODO?: make not public?
 pub mod response;
 mod server;
 mod status;

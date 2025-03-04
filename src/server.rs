@@ -4,7 +4,7 @@ use log::{debug, info};
 use std::collections::HashMap;
 
 use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt, BufReader},
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
@@ -12,7 +12,7 @@ use crate::protocol::{self, HttpProtocol, Protocol};
 use crate::request::{HttpRequest, RequestMethod};
 use crate::response::HttpResponse;
 use crate::transport::{TcpTransport, Transport};
-use crate::{constants, Result};
+use crate::Result;
 
 macro_rules! method_g {
     ($method:ident, $request_method:ident) => {
@@ -25,6 +25,8 @@ macro_rules! method_g {
         }
     };
 }
+
+// TODO! next ROUTING
 
 // TODO: allow async
 type Handler = dyn Sync + Send + Fn(HttpRequest) -> HttpResponse;
