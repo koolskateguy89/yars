@@ -2,7 +2,6 @@ use log::debug;
 
 use std::net::SocketAddr;
 
-use bytes::BytesMut;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -41,7 +40,7 @@ impl Transport for TcpTransport {
     }
 
     async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
-        let mut buf = BytesMut::with_capacity(1024);
+        let mut buf = Vec::with_capacity(1024);
         stream.read_buf(&mut buf).await?;
 
         if buf.is_empty() {

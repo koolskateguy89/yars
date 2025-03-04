@@ -5,6 +5,10 @@ use std::str::Lines;
 
 use super::{Headers, RequestMethod};
 
+pub(super) fn parse_status_line_bytes() {
+    // TODO?
+}
+
 /// Method Request-URI HTTP-Version
 pub(super) fn parse_status_line(status_line: &str) -> Option<(RequestMethod, &str)> {
     let mut status_line = status_line.split_whitespace();

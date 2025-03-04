@@ -3,7 +3,6 @@
 use log::{debug, info};
 use std::collections::HashMap;
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream, ToSocketAddrs},
@@ -30,11 +29,10 @@ macro_rules! method_g {
 // TODO: allow async
 type Handler = dyn Sync + Send + Fn(HttpRequest) -> HttpResponse;
 
+// TODO: make routing not HTTP specific like it currently is
 // TODO: directly import handler from protocol once done with generic impl.
 // TODO?: some sort of builder for picking transport/protocol
-// FIXME: (if possible) default wihtout specifying generic args
-// #[derive(Default)]
-pub struct YarsServer<T = TcpTransport, P = HttpProtocol>
+pub struct YarsServer<T, P>
 where
     T: Transport,
     P: Protocol,
@@ -43,6 +41,17 @@ where
     protocol: P,
     handlers: HashMap<(String, RequestMethod), Box<protocol::Handler<P>>>,
     default_handler: Option<Box<protocol::Handler<P>>>,
+}
+
+impl YarsServer<TcpTransport, HttpProtocol> {
+    pub fn default_server() -> Self {
+        YarsServer {
+            transport: TcpTransport::default(),
+            protocol: HttpProtocol,
+            handlers: HashMap::new(),
+            default_handler: None,
+        }
+    }
 }
 
 // impl Default for YarsServer<TcpTransport, HttpProtocol> {
@@ -123,14 +132,16 @@ where
             let mut conn = self.transport.accept().await?;
 
             let raw_request = self.transport.read(&mut conn).await?;
-            let request_string = String::from_utf8(raw_request).unwrap();
+            let request_string = String::from_utf8(raw_request.clone()).unwrap();
             dbg!(request_string);
 
-            // TODO: handle request
             let request = self.protocol.parse_request(&raw_request);
+
             // TODO: find handler according to routing
 
             // TODO: handle request
+
+            // TODO: deserialise response
 
             // TODO: return response with transport
         }
@@ -182,7 +193,7 @@ impl HttpServer {
     }
 
     async fn handle_connection(&self, mut stream: TcpStream) -> std::io::Result<()> {
-        let mut buf = BytesMut::with_capacity(1024);
+        let mut buf = Vec::with_capacity(1024);
         stream.read_buf(&mut buf).await?;
 
         if buf.is_empty() {
@@ -199,7 +210,7 @@ impl HttpServer {
         let buf_vec = buf.to_vec();
         let buf_str = String::from_utf8(buf_vec).unwrap();
 
-        // TODO: make that take BytesMut or smthn, I think acc Buf
+        // TODO: make that take Vec<u8>
         let Some(req) = HttpRequest::parse_request(buf_str) else {
             return Ok(());
         };

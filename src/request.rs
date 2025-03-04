@@ -1,4 +1,3 @@
-use bytes::{Buf, BufMut, BytesMut};
 use std::{collections::HashMap, io::BufRead};
 use tokio::io::AsyncBufReadExt;
 
@@ -55,7 +54,7 @@ impl HttpRequest {
         })
     }
 
-    pub(crate) fn parse_request_bytes(mut buf: BytesMut) -> Option<HttpRequest> {
+    pub(crate) fn parse_request_bytes(mut buf: Vec<u8>) -> Option<HttpRequest> {
         // TODO
         // TODO: figure out correct buf param type & how tf to read it lol
         // let mut lines = tokio::io::AsyncBufReadExt::lines(buf);
