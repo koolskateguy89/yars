@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use log::{debug, info};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
@@ -25,10 +23,6 @@ impl TcpTransport {
         self.listener.as_ref().ok_or(TransportError::Tcp(
             "TCP listener not bound. Call `bind` first.".into(),
         ))
-    }
-
-    fn addr(&self) -> TransportResult<SocketAddr> {
-        Ok(self.listener()?.local_addr()?)
     }
 }
 
@@ -57,7 +51,7 @@ impl Transport for TcpTransport {
 
         debug!(
             "bytes read from TCP connection {}: {}",
-            self.addr()?,
+            stream.peer_addr()?,
             buf.len(),
         );
 
@@ -71,7 +65,7 @@ impl Transport for TcpTransport {
     async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
         debug!(
             "writing bytes to TCP connection {}: {}",
-            self.addr()?,
+            stream.peer_addr()?,
             response.len(),
         );
         stream.write_all(response).await.map_err(|err| err.into())
