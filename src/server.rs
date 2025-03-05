@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+use std::sync::Arc;
 
 use log::{debug, info};
 use tokio::net::ToSocketAddrs;
@@ -21,6 +21,11 @@ use crate::{
 ///
 /// Server events are logged using the [log] crate. A log implementation must be provided by the user.
 /// For example, [pretty_env_logger].
+///
+/// As this is an asychronous server, the server will spawn a new task for each connection. Thus
+/// the protocol and transport layers and their associated types all need to be [`Send`] and
+/// [`Sync`].
+#[derive(Debug)]
 pub struct YarsServer<T, P>
 where
     T: Transport,
@@ -76,19 +81,30 @@ where
 
         self.transport.bind(addr).await?;
 
-        // TODO?: tokio spawn or whatever for async
-        loop {
-            // Accept connection with transport layer
-            let conn = self.transport.accept().await?;
+        let server = Arc::new(self);
+        let mut connection_handles = Vec::new();
 
-            self.handle_connection(conn).await?;
+        loop {
+            // Accept connection with transport layer (in main loop)
+            let conn = server.transport.accept().await?;
+
+            // Handle connection in new task
+            let server = server.clone();
+            let handle = tokio::spawn(async move {
+                if let Err(e) = server.handle_connection(conn).await {
+                    info!("Error handling connection: {}", e);
+                }
+            });
+
+            // TODO?: store handles with an id - is there a point?
+            connection_handles.push(handle);
         }
 
-        // TODO?
+        // TODO?: close all tasks
         // self.transport.close(conn).await?;
     }
 
-    async fn handle_connection(&mut self, mut conn: T::Connection) -> Result<()> {
+    async fn handle_connection(&self, mut conn: T::Connection) -> Result<()> {
         // Read request from connection with transport layer
         let raw_request = self.transport.read(&mut conn).await?;
 

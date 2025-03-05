@@ -11,15 +11,15 @@ pub use http::HttpProtocol;
 /// Message/communication protocol layer.
 ///
 /// Responsible for converting raw bytes into higher-level request/response objects.
-pub trait Protocol {
+pub trait Protocol: Send + Sync + 'static {
     /// The request type for this protocol (e.g., HttpRequest, WsRequest, etc.)
-    type Req;
+    type Req: Send + Sync;
 
     /// The response type for this protocol
-    type Res;
+    type Res: Send + Sync;
 
     /// The routing key type for this protocol
-    type RoutingKey: Eq + std::hash::Hash + std::fmt::Display;
+    type RoutingKey: Send + Sync + Eq + std::hash::Hash + std::fmt::Display;
 
     // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request

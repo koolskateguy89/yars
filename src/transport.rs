@@ -5,6 +5,8 @@
 //! Supported protocols:
 //! - TCP
 
+use std::future::Future;
+
 use tokio::net::ToSocketAddrs;
 
 use crate::TransportError;
@@ -19,9 +21,9 @@ pub type TransportResult<T> = std::result::Result<T, TransportError>;
 ///
 /// Only transport that use socket addresses (e.g. TCP, UDP) can be supported, because of
 /// [Transport::bind] accepting an argument that implements [ToSocketAddrs].
-pub trait Transport {
+pub trait Transport: Send + Sync + 'static {
     /// TODO
-    type Connection;
+    type Connection: Send + Sync;
 
     /// Bind the transport to its listening address.
     ///
@@ -32,10 +34,17 @@ pub trait Transport {
     async fn accept(&self) -> TransportResult<Self::Connection>;
 
     /// TODO
-    async fn read(&self, conn: &mut Self::Connection) -> TransportResult<Vec<u8>>;
+    fn read(
+        &self,
+        conn: &mut Self::Connection,
+    ) -> impl Future<Output = TransportResult<Vec<u8>>> + Send;
 
     /// TODO
-    async fn write(&self, conn: &mut Self::Connection, response: &[u8]) -> TransportResult<()>;
+    fn write(
+        &self,
+        conn: &mut Self::Connection,
+        response: &[u8],
+    ) -> impl Future<Output = TransportResult<()>> + Send;
 
     /// TODO
     async fn close(&self, conn: Self::Connection) -> TransportResult<()>;

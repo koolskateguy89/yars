@@ -60,12 +60,25 @@ where
 
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
+    use crate::protocol::HttpProtocol;
 
     // TODO
 
     #[test]
     fn test_default_handler() {
         // TODO
+    }
+
+    #[test]
+    fn test_send() {
+        fn assert_send<T: Send>() {}
+        assert_send::<Router<HttpProtocol>>();
+    }
+
+    #[test]
+    fn test_sync() {
+        fn assert_sync<T: Sync>() {}
+        assert_sync::<Router<HttpProtocol>>();
     }
 }
