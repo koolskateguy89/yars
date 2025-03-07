@@ -1,16 +1,15 @@
 use std::sync::Arc;
 
-use log::{debug, info};
+use log::{debug, error, info};
 use tokio::net::ToSocketAddrs;
 
 use crate::{
     protocol::{HttpProtocol, Protocol, ToHandler},
     router::Router,
     transport::{TcpTransport, Transport},
-    Result,
+    Error, Result,
 };
 
-// TODO: async
 // TODO: some sort of trace/id for each connection for easier log reading
 
 // TODO: some sort of config file
@@ -92,7 +91,7 @@ where
             let server = server.clone();
             let handle = tokio::spawn(async move {
                 if let Err(e) = server.handle_connection(conn).await {
-                    info!("Error handling connection: {}", e);
+                    error!("Error handling connection: {}", e);
                 }
             });
 
@@ -127,7 +126,9 @@ where
         };
 
         // Handle request by calling handler
-        let response = handler(request);
+        let response = std::panic::catch_unwind(|| handler(request))
+            // FIXME?: not great error output, replace with handler returning Result rather than catching panics
+            .map_err(|err| Error::Handler(format!("Handler panicked: {:?}", err)))?;
 
         // Serialize response using protocol layer
         let response_bytes = self.protocol.serialize_response(&response);

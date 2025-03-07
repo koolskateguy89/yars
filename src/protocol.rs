@@ -5,6 +5,8 @@
 
 mod http;
 
+use std::panic::{RefUnwindSafe, UnwindSafe};
+
 pub use http::HttpProtocol;
 
 // TODO?: rename, things like TCP are protocols. maybe Codec?
@@ -13,7 +15,7 @@ pub use http::HttpProtocol;
 /// Responsible for converting raw bytes into higher-level request/response objects.
 pub trait Protocol: Send + Sync + 'static {
     /// The request type for this protocol (e.g., HttpRequest, WsRequest, etc.)
-    type Req: Send + Sync;
+    type Req: Send + Sync + UnwindSafe;
 
     /// The response type for this protocol
     type Res: Send + Sync;
@@ -32,11 +34,10 @@ pub trait Protocol: Send + Sync + 'static {
     fn extract_routing_key(&self, req: &Self::Req) -> Self::RoutingKey;
 }
 
+// TODO: result
 // TODO: allow async
-pub type Handler<P>
-where
-    P: Protocol,
-= dyn Sync + Send + Fn(P::Req) -> P::Res;
+pub type Handler<P> =
+    dyn Sync + Send + RefUnwindSafe + Fn(<P as Protocol>::Req) -> <P as Protocol>::Res;
 
 pub trait ToHandler<P>
 where
@@ -48,7 +49,7 @@ where
 impl<P, F, B> ToHandler<P> for F
 where
     P: Protocol,
-    F: Sync + Send + Fn(P::Req) -> B + 'static,
+    F: Sync + Send + RefUnwindSafe + Fn(P::Req) -> B + 'static,
     B: Into<P::Res>,
 {
     fn to_handler(self) -> Box<Handler<P>> {

@@ -10,6 +10,9 @@ pub enum Error {
 
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
+
+    #[error("Handler error: {0}")]
+    Handler(String),
     // TODO: rest
 }
 

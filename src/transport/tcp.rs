@@ -59,7 +59,7 @@ impl Transport for TcpTransport {
             return Ok(vec![]);
         }
 
-        Ok(buf.to_vec())
+        Ok(buf)
     }
 
     async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
