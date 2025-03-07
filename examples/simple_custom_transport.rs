@@ -3,15 +3,15 @@ use yars::{
     http::{HttpRequest, HttpResponse},
     protocol::HttpProtocol,
     transport::{Transport, TransportResult},
-    YarsServer,
+    Result, YarsServer,
 };
 
-fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
-    HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#)
+fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok(HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#))
 }
 
-fn okay(_req: HttpRequest) -> impl Into<HttpResponse> {
-    "ok"
+fn okay(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok("ok")
 }
 
 struct TestTransport;
@@ -50,7 +50,7 @@ async fn main() -> yars::Result<()> {
         .get("/", index)
         .get("/ok", okay)
         .get("/clickme", |_req: HttpRequest| {
-            HttpResponse::Ok().html(include_str!("clickme.html"))
+            Ok(HttpResponse::Ok().html(include_str!("clickme.html")))
         })
         .listen("127.0.0.1:8000")
         .await

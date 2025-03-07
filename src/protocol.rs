@@ -5,7 +5,7 @@
 
 mod http;
 
-use std::panic::{RefUnwindSafe, UnwindSafe};
+use crate::Result;
 
 pub use http::HttpProtocol;
 
@@ -15,7 +15,7 @@ pub use http::HttpProtocol;
 /// Responsible for converting raw bytes into higher-level request/response objects.
 pub trait Protocol: Send + Sync + 'static {
     /// The request type for this protocol (e.g., HttpRequest, WsRequest, etc.)
-    type Req: Send + Sync + UnwindSafe;
+    type Req: Send + Sync;
 
     /// The response type for this protocol
     type Res: Send + Sync;
@@ -34,10 +34,8 @@ pub trait Protocol: Send + Sync + 'static {
     fn extract_routing_key(&self, req: &Self::Req) -> Self::RoutingKey;
 }
 
-// TODO: result
 // TODO: allow async
-pub type Handler<P> =
-    dyn Sync + Send + RefUnwindSafe + Fn(<P as Protocol>::Req) -> <P as Protocol>::Res;
+pub type Handler<P> = dyn Sync + Send + Fn(<P as Protocol>::Req) -> Result<<P as Protocol>::Res>;
 
 pub trait ToHandler<P>
 where
@@ -46,13 +44,13 @@ where
     fn to_handler(self) -> Box<Handler<P>>;
 }
 
-impl<P, F, B> ToHandler<P> for F
+impl<P, F, R> ToHandler<P> for F
 where
     P: Protocol,
-    F: Sync + Send + RefUnwindSafe + Fn(P::Req) -> B + 'static,
-    B: Into<P::Res>,
+    F: Sync + Send + Fn(P::Req) -> Result<R> + 'static,
+    R: Into<P::Res>,
 {
     fn to_handler(self) -> Box<Handler<P>> {
-        Box::new(move |req| self(req).into())
+        Box::new(move |req| self(req).map(|res| res.into()))
     }
 }

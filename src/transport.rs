@@ -9,9 +9,9 @@ use std::future::Future;
 
 use tokio::net::ToSocketAddrs;
 
-use crate::TransportError;
-
 mod tcp;
+
+use crate::TransportError;
 
 pub use tcp::TcpTransport;
 

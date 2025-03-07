@@ -1,15 +1,15 @@
 use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
-    YarsServer,
+    Result, YarsServer,
 };
 
-fn index(_req: HttpRequest) -> impl Into<HttpResponse> {
-    HttpResponse::Ok().html(include_str!("form/index.html"))
+fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok(HttpResponse::Ok().html(include_str!("form/index.html")))
 }
 
-fn submit(_req: HttpRequest) -> impl Into<HttpResponse> {
-    HttpResponse::Ok().json(r#"{ "abc": 123 }"#)
+fn submit(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok(HttpResponse::Ok().json(r#"{ "abc": 123 }"#))
 }
 
 #[tokio::main]

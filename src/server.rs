@@ -7,7 +7,7 @@ use crate::{
     protocol::{HttpProtocol, Protocol, ToHandler},
     router::Router,
     transport::{TcpTransport, Transport},
-    Error, Result,
+    Result,
 };
 
 // TODO: some sort of trace/id for each connection for easier log reading
@@ -126,9 +126,7 @@ where
         };
 
         // Handle request by calling handler
-        let response = std::panic::catch_unwind(|| handler(request))
-            // FIXME?: not great error output, replace with handler returning Result rather than catching panics
-            .map_err(|err| Error::Handler(format!("Handler panicked: {:?}", err)))?;
+        let response = handler(request)?;
 
         // Serialize response using protocol layer
         let response_bytes = self.protocol.serialize_response(&response);
