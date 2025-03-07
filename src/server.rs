@@ -126,7 +126,7 @@ where
         };
 
         // Handle request by calling handler
-        let response = handler(request)?;
+        let response = handler(request).map_err(crate::Error::Handler)?;
 
         // Serialize response using protocol layer
         let response_bytes = self.protocol.serialize_response(&response);

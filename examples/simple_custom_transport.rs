@@ -49,7 +49,7 @@ async fn main() -> yars::Result<()> {
     YarsServer::new(TestTransport, HttpProtocol)
         .get("/", index)
         .get("/ok", okay)
-        .get("/clickme", |_req: HttpRequest| {
+        .get("/clickme", |_req: HttpRequest| -> anyhow::Result<_> {
             Ok(HttpResponse::Ok().html(include_str!("clickme.html")))
         })
         .listen("127.0.0.1:8000")

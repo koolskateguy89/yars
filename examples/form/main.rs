@@ -5,7 +5,7 @@ use yars::{
 };
 
 fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
-    Ok(HttpResponse::Ok().html(include_str!("form/index.html")))
+    Ok(HttpResponse::Ok().html(include_str!("index.html")))
 }
 
 fn submit(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {

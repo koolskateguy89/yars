@@ -11,8 +11,8 @@ pub enum Error {
     #[error(transparent)]
     Protocol(#[from] ProtocolError),
 
-    #[error("Handler error: {0}")]
-    Handler(String),
+    #[error("Error from handler: {0}")]
+    Handler(#[from] Box<dyn std::error::Error + Send + Sync>),
     // TODO: rest
 }
 

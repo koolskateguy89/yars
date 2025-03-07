@@ -5,8 +5,6 @@
 
 mod http;
 
-use crate::Result;
-
 pub use http::HttpProtocol;
 
 // TODO?: rename, things like TCP are protocols. maybe Codec?
@@ -35,7 +33,14 @@ pub trait Protocol: Send + Sync + 'static {
 }
 
 // TODO: allow async
-pub type Handler<P> = dyn Sync + Send + Fn(<P as Protocol>::Req) -> Result<<P as Protocol>::Res>;
+/// A handler is a function that takes a request and returns a response.
+///
+/// Can return any generic error
+pub type Handler<P> = dyn Sync
+    + Send
+    + Fn(
+        <P as Protocol>::Req,
+    ) -> std::result::Result<<P as Protocol>::Res, Box<dyn std::error::Error + Send + Sync>>;
 
 pub trait ToHandler<P>
 where
@@ -44,13 +49,14 @@ where
     fn to_handler(self) -> Box<Handler<P>>;
 }
 
-impl<P, F, R> ToHandler<P> for F
+impl<P, F, R, E> ToHandler<P> for F
 where
     P: Protocol,
-    F: Sync + Send + Fn(P::Req) -> Result<R> + 'static,
+    F: Sync + Send + Fn(P::Req) -> std::result::Result<R, E> + 'static,
     R: Into<P::Res>,
+    E: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     fn to_handler(self) -> Box<Handler<P>> {
-        Box::new(move |req| self(req).map(|res| res.into()))
+        Box::new(move |req| self(req).map(|res| res.into()).map_err(|e| e.into()))
     }
 }

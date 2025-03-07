@@ -1,14 +1,19 @@
 use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
-    Result, YarsServer,
+    YarsServer,
 };
 
-fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+fn index(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
+    let _ = "abc".parse::<i32>()?;
+
+    let num = "abc".parse::<i32>()?;
+    print!("{}", num);
+
     Ok(HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#))
 }
 
-fn okay(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+fn okay(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
     Ok("ok")
 }
 
@@ -21,7 +26,7 @@ async fn main() -> yars::Result<()> {
     YarsServer::default_server()
         .get("/", index)
         .get("/ok", okay)
-        .get("/clickme", |_req: HttpRequest| {
+        .get("/clickme", |_req: HttpRequest| -> anyhow::Result<_> {
             Ok(HttpResponse::Ok().html(include_str!("clickme.html")))
         })
         .listen("127.0.0.1:8000")
