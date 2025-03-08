@@ -51,8 +51,11 @@ impl std::fmt::Display for HttpRoutingKey {
     }
 }
 
-impl From<(&str, RequestMethod)> for HttpRoutingKey {
-    fn from((uri, method): (&str, RequestMethod)) -> Self {
+impl<T> From<(T, RequestMethod)> for HttpRoutingKey
+where
+    T: ToString,
+{
+    fn from((uri, method): (T, RequestMethod)) -> Self {
         Self {
             uri: uri.to_string(),
             method,

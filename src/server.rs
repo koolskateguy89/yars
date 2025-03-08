@@ -141,7 +141,7 @@ where
 macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
-        pub fn $method(self, path: &str, handler: impl ToHandler<HttpProtocol>) -> Self {
+        pub fn $method(self, path: impl ToString, handler: impl ToHandler<HttpProtocol>) -> Self {
             self.route((path, crate::http::RequestMethod::$request_method), handler)
         }
     };
