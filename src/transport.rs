@@ -23,14 +23,19 @@ pub type TransportResult<T> = std::result::Result<T, TransportError>;
 /// [Transport::bind] accepting an argument that implements [ToSocketAddrs].
 pub trait Transport: Send + Sync + 'static {
     /// TODO
+    ///
+    /// Connection-less transports should use `()`.
     type Connection: Send + Sync;
 
     /// Bind the transport to its listening address.
     ///
     /// Should provide a detailed log message saying that the transport is listening on the given address.
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()>;
+    async fn bind(&mut self, local_addr: impl ToSocketAddrs) -> TransportResult<()>;
 
     /// TODO
+    /// Accept a new connection.
+    ///
+    /// Connection-less transports should return `Ok(())`.
     async fn accept(&self) -> TransportResult<Self::Connection>;
 
     /// TODO
@@ -47,5 +52,5 @@ pub trait Transport: Send + Sync + 'static {
     ) -> impl Future<Output = TransportResult<()>> + Send;
 
     /// TODO
-    async fn close(&self, conn: Self::Connection) -> TransportResult<()>;
+    async fn close(self, conn: Self::Connection) -> TransportResult<()>;
 }

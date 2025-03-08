@@ -1,3 +1,5 @@
+//! # YARS - Yet Another Rust Server
+
 mod constants;
 mod error;
 mod router;

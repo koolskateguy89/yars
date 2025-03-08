@@ -12,7 +12,7 @@ pub enum Error {
     Protocol(#[from] ProtocolError),
 
     #[error("Error from handler: {0}")]
-    Handler(#[from] Box<dyn std::error::Error + Send + Sync>),
+    Handler(Box<dyn std::error::Error + Send + Sync>),
     // TODO: rest
 }
 
@@ -37,5 +37,5 @@ pub enum ProtocolError {
     Io(#[from] std::io::Error),
 
     #[error("TCP error: {0}")]
-    Tcp(String),
+    Http(String),
 }

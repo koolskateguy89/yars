@@ -19,7 +19,7 @@ struct TestTransport;
 impl Transport for TestTransport {
     type Connection = i32;
 
-    async fn bind(&mut self, addr: impl tokio::net::ToSocketAddrs) -> TransportResult<()> {
+    async fn bind(&mut self, local_addr: impl tokio::net::ToSocketAddrs) -> TransportResult<()> {
         todo!()
     }
 
@@ -35,7 +35,7 @@ impl Transport for TestTransport {
         todo!()
     }
 
-    async fn close(&self, conn: Self::Connection) -> TransportResult<()> {
+    async fn close(self, conn: Self::Connection) -> TransportResult<()> {
         todo!()
     }
 }

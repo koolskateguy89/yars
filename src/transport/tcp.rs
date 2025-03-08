@@ -29,8 +29,8 @@ impl TcpTransport {
 impl Transport for TcpTransport {
     type Connection = TcpStream;
 
-    async fn bind(&mut self, addr: impl ToSocketAddrs) -> TransportResult<()> {
-        let listener = TcpListener::bind(addr).await?;
+    async fn bind(&mut self, local_addr: impl ToSocketAddrs) -> TransportResult<()> {
+        let listener = TcpListener::bind(local_addr).await?;
         info!(
             "listening for TCP connections on {}",
             listener.local_addr()?
@@ -47,12 +47,12 @@ impl Transport for TcpTransport {
 
     async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
         let mut buf = Vec::with_capacity(1024);
-        stream.read_buf(&mut buf).await?;
+        let len = stream.read_buf(&mut buf).await?;
 
         debug!(
             "bytes read from TCP connection {}: {}",
             stream.peer_addr()?,
-            buf.len(),
+            len,
         );
 
         if buf.is_empty() {
@@ -71,7 +71,8 @@ impl Transport for TcpTransport {
         stream.write_all(response).await.map_err(|err| err.into())
     }
 
-    async fn close(&self, _stream: Self::Connection) -> TransportResult<()> {
-        todo!()
+    async fn close(self, mut stream: Self::Connection) -> TransportResult<()> {
+        stream.shutdown().await?;
+        Ok(())
     }
 }

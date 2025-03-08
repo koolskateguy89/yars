@@ -5,11 +5,6 @@ use yars::{
 };
 
 fn index(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
-    let _ = "abc".parse::<i32>()?;
-
-    let num = "abc".parse::<i32>()?;
-    print!("{}", num);
-
     Ok(HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#))
 }
 
