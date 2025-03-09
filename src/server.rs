@@ -2,17 +2,15 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
-use log::{debug, error, info};
 use tokio::net::ToSocketAddrs;
+use tracing::{debug, error, error_span, info, info_span, trace, Instrument};
 
 use crate::{
     protocol::{HttpProtocol, Protocol, ToHandler},
     router::Router,
-    transport::{TcpTransport, TracedConnection, Transport},
+    transport::{TcpTransport, Transport},
     Result,
 };
-
-// TODO(finish): some sort of trace/id for each connection for easier log reading
 
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
@@ -20,12 +18,31 @@ use crate::{
 // TODO: doc comment with example usage
 /// Logging should be done in the transport.
 ///
-/// Server events are logged using the [log] crate. A log implementation must be provided by the user.
-/// For example, [pretty_env_logger].
+/// Server events are logged using the [tracing] crate. A subscriber must be set up by the user.
 ///
 /// As this is an asychronous server, the server will spawn a new task for each connection. Thus
 /// the protocol and transport layers and their associated types all need to be [`Send`] and
 /// [`Sync`].
+///
+/// ## Example Usage
+///
+/// ```rust
+/// use yars::YarsServer;
+/// use yars::http::{HttpRequest, HttpResponse};
+///
+/// fn index(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
+///     Ok(HttpResponse::Ok().body("Hello, world!"))
+/// }
+///
+/// #[tokio::main]
+/// async fn main() -> yars::Result<()> {
+///     tracing_subscriber::fmt().init();
+///
+///     YarsServer::default_server()
+///         .get("/", index)
+///         .listen("127.0.0.1:8080")
+///         .await
+/// }
 #[derive(Debug)]
 pub struct YarsServer<T, P>
 where
@@ -35,7 +52,7 @@ where
     transport: T,
     protocol: P,
     router: Router<P>,
-    connection_counter: AtomicUsize,
+    conn_counter: AtomicUsize,
 }
 
 impl YarsServer<TcpTransport, HttpProtocol> {
@@ -45,7 +62,7 @@ impl YarsServer<TcpTransport, HttpProtocol> {
             transport: TcpTransport::new(),
             protocol: HttpProtocol,
             router: Router::new(),
-            connection_counter: AtomicUsize::new(0),
+            conn_counter: AtomicUsize::new(0),
         }
     }
 }
@@ -60,7 +77,7 @@ where
             transport,
             protocol,
             router: Router::new(),
-            connection_counter: AtomicUsize::new(0),
+            conn_counter: AtomicUsize::new(0),
         }
     }
 
@@ -89,21 +106,29 @@ where
         let mut connection_handles = Vec::new();
 
         loop {
-            let connection_id = server.connection_counter.fetch_add(1, Relaxed);
+            let conn_id = server.conn_counter.fetch_add(1, Relaxed);
+            // TODO?: also include remote addr - but then that would have to get it from transport.accept
+            // tbh could use empty value and let transport layer handle it
+            // actually no cos then we would have to pass the span to the transport layer
+            // https://docs.rs/tracing/latest/tracing/#recording-fields
+            let conn_span = error_span!("connection", id = conn_id);
+            // Enter the span before accepting connection so the connection ID is included in
+            // transport layer logs, which could include peer/remote address
+            let _entered = conn_span.enter();
 
             // Accept connection with transport layer (in main loop)
-            let conn = server.transport.accept(connection_id).await?;
-
-            // Wrap connection with connection id
-            let conn = TracedConnection::new(conn, connection_id);
+            let conn = server.transport.accept().await?;
 
             // Handle connection in new task
             let server = server.clone();
-            let handle = tokio::spawn(async move {
-                if let Err(e) = server.handle_connection(conn).await {
-                    error!("{connection_id}: Error handling connection: {e}",);
+            let handle = tokio::spawn(
+                async move {
+                    if let Err(e) = server.handle_connection(conn).await {
+                        error!(?e, "Error handling connection",);
+                    }
                 }
-            });
+                .in_current_span(),
+            );
 
             // TODO?: store handles with an id - is there a point?
             connection_handles.push(handle);
@@ -113,36 +138,50 @@ where
         // self.transport.close(conn).await?;
     }
 
-    async fn handle_connection(&self, mut conn: TracedConnection<T::Connection>) -> Result<()> {
+    async fn handle_connection(&self, mut conn: T::Connection) -> Result<()> {
         // Read request from connection with transport layer
-        let raw_request = self.transport.read(&mut conn).await?;
+        trace!("Attempting to read from connection");
+        let raw_request = self
+            .transport
+            .read(&mut conn)
+            .instrument(info_span!("read_connection"))
+            .await?;
 
         // Parse request bytes using protocol layer
+        trace!(len = raw_request.len(), "Parsing request");
         let Some(request) = self.protocol.parse_request(&raw_request) else {
-            debug!("{}: Failed to parse request", conn.id);
+            info!("Failed to parse request");
             return Ok(());
         };
 
         // Extract routing key using protocol layer
+        trace!("Extracting routing key");
         let routing_key = self.protocol.extract_routing_key(&request);
-        info!("{}: route={routing_key}", conn.id);
+        info!(route = %routing_key);
 
         // TODO?: could impl middleware here
 
         // Get handler according to routing (according to protocol layer)
         let Some(handler) = self.router.get_request_handler(&routing_key) else {
-            debug!("{}: No handler found for: {routing_key}", conn.id);
+            info!(route = %routing_key, "No handler found");
             return Ok(());
         };
 
         // Handle request by calling handler
-        let response = handler(request).map_err(crate::Error::Handler)?;
+        let handler_span = info_span!("handle_request");
+        let response = handler_span
+            .in_scope(|| handler(request))
+            .map_err(crate::Error::Handler)?;
 
         // Serialize response using protocol layer
         let response_bytes = self.protocol.serialize_response(&response);
 
         // Write response bytes to connection with transport layer
-        self.transport.write(&mut conn, &response_bytes).await?;
+        trace!("Attempting to write to connection");
+        self.transport
+            .write(&mut conn, &response_bytes)
+            .instrument(info_span!("write_connection"))
+            .await?;
 
         Ok(())
     }

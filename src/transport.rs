@@ -36,37 +36,21 @@ pub trait Transport: Send + Sync + 'static {
     /// Accept a new connection.
     ///
     /// Connection-less transports should return `Ok(())`.
-    async fn accept(&self, connection_id: usize) -> TransportResult<Self::Connection>;
+    async fn accept(&self) -> TransportResult<Self::Connection>;
 
     /// TODO
     fn read(
         &self,
-        traced_conn: &mut TracedConnection<Self::Connection>,
+        conn: &mut Self::Connection,
     ) -> impl Future<Output = TransportResult<Vec<u8>>> + Send;
 
     /// TODO
     fn write(
         &self,
-        traced_conn: &mut TracedConnection<Self::Connection>,
+        conn: &mut Self::Connection,
         response: &[u8],
     ) -> impl Future<Output = TransportResult<()>> + Send;
 
     /// TODO
     async fn close(self, conn: Self::Connection) -> TransportResult<()>;
-}
-
-// TODO: figure out ergonomics of this
-pub struct TracedConnection<T> {
-    pub connection: T,
-    pub(crate) id: usize,
-}
-
-impl<T> TracedConnection<T> {
-    pub(crate) fn new(connection: T, id: usize) -> Self {
-        Self { connection, id }
-    }
-
-    pub fn id(&self) -> usize {
-        self.id
-    }
 }

@@ -1,11 +1,11 @@
-use log::{debug, info};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
+use tracing::{debug, info};
 
-use super::{TracedConnection, Transport, TransportResult};
-use crate::TransportError;
+use super::{Transport, TransportResult};
+use crate::{constants::MAX_REQUEST_SIZE, TransportError};
 
 /// Implementation of the transport layer for TCP connections
 #[derive(Default)]
@@ -32,38 +32,27 @@ impl Transport for TcpTransport {
     async fn bind(&mut self, local_addr: impl ToSocketAddrs) -> TransportResult<()> {
         let listener = TcpListener::bind(local_addr).await?;
         info!(
-            "listening for TCP connections on {}",
+            "Listening for TCP connections on {}",
             listener.local_addr()?
         );
         self.listener = Some(listener);
         Ok(())
     }
 
-    async fn accept(&self, connection_id: usize) -> TransportResult<Self::Connection> {
-        let (stream, _) = self.listener()?.accept().await?;
-        debug!(
-            "{}: accepted TCP connection from {}",
-            connection_id,
-            stream.peer_addr()?
-        );
+    async fn accept(&self) -> TransportResult<Self::Connection> {
+        let (stream, addr) = self.listener()?.accept().await?;
+        debug!(%addr, "Accepted TCP connection");
         Ok(stream)
     }
 
-    async fn read(
-        &self,
-        TracedConnection {
-            connection: stream,
-            id,
-        }: &mut TracedConnection<Self::Connection>,
-    ) -> TransportResult<Vec<u8>> {
-        let mut buf = Vec::with_capacity(1024);
+    async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
+        let mut buf = Vec::with_capacity(MAX_REQUEST_SIZE);
         let len = stream.read_buf(&mut buf).await?;
 
         debug!(
-            "{}: bytes read from TCP connection {}: {}",
-            id,
-            stream.peer_addr()?,
+            peer = %stream.peer_addr()?,
             len,
+            "Successfully read from TCP connection",
         );
 
         if buf.is_empty() {
@@ -73,19 +62,11 @@ impl Transport for TcpTransport {
         Ok(buf)
     }
 
-    async fn write(
-        &self,
-        TracedConnection {
-            connection: stream,
-            id,
-        }: &mut TracedConnection<Self::Connection>,
-        response: &[u8],
-    ) -> TransportResult<()> {
+    async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
         debug!(
-            "{}: writing bytes to TCP connection {}: {}",
-            id,
-            stream.peer_addr()?,
-            response.len(),
+            peer = %stream.peer_addr()?,
+            len = response.len(),
+            "Writing to TCP connection",
         );
         stream.write_all(response).await.map_err(|err| err.into())
     }

@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
     YarsServer,
@@ -13,9 +12,12 @@ fn okay(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
 }
 
 #[tokio::main]
-async fn main() -> yars::Result<()> {
-    pretty_env_logger::formatted_builder()
-        .filter_level(LevelFilter::Debug)
+async fn main() -> anyhow::Result<()> {
+    // Print formatted traces to stdout
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_max_level(tracing::Level::TRACE)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
     YarsServer::default_server()
@@ -25,5 +27,7 @@ async fn main() -> yars::Result<()> {
             Ok(HttpResponse::Ok().html(include_str!("clickme.html")))
         })
         .listen("127.0.0.1:8000")
-        .await
+        .await?;
+
+    Ok(())
 }

@@ -1,8 +1,7 @@
-use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
     protocol::HttpProtocol,
-    transport::{TracedConnection, Transport, TransportResult},
+    transport::{Transport, TransportResult},
     Result, YarsServer,
 };
 
@@ -23,22 +22,15 @@ impl Transport for TestTransport {
         todo!()
     }
 
-    async fn accept(&self, connection_id: usize) -> TransportResult<Self::Connection> {
+    async fn accept(&self) -> TransportResult<Self::Connection> {
         todo!()
     }
 
-    async fn read(
-        &self,
-        traced_conn: &mut TracedConnection<Self::Connection>,
-    ) -> TransportResult<Vec<u8>> {
+    async fn read(&self, conn: &mut Self::Connection) -> TransportResult<Vec<u8>> {
         todo!()
     }
 
-    async fn write(
-        &self,
-        traced_conn: &mut TracedConnection<Self::Connection>,
-        response: &[u8],
-    ) -> TransportResult<()> {
+    async fn write(&self, conn: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
         todo!()
     }
 
@@ -49,8 +41,9 @@ impl Transport for TestTransport {
 
 #[tokio::main]
 async fn main() -> yars::Result<()> {
-    pretty_env_logger::formatted_builder()
-        .filter_level(LevelFilter::Debug)
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
     YarsServer::new(TestTransport, HttpProtocol)

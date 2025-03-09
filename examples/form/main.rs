@@ -1,4 +1,3 @@
-use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
     Result, YarsServer,
@@ -14,13 +13,14 @@ fn submit(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
 
 #[tokio::main]
 async fn main() -> yars::Result<()> {
-    pretty_env_logger::formatted_builder()
-        .filter_level(LevelFilter::Debug)
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_max_level(tracing::Level::DEBUG)
         .init();
 
-    let server = YarsServer::default_server()
+    YarsServer::default_server()
         .get("/", index)
-        .post("/abc", submit);
-
-    server.listen("127.0.0.1:8001").await
+        .post("/abc", submit)
+        .listen("127.0.0.1:8001")
+        .await
 }
