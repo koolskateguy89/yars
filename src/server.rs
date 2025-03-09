@@ -1,3 +1,5 @@
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
 use log::{debug, error, info};
@@ -6,13 +8,13 @@ use tokio::net::ToSocketAddrs;
 use crate::{
     protocol::{HttpProtocol, Protocol, ToHandler},
     router::Router,
-    transport::{TcpTransport, Transport},
+    transport::{TcpTransport, TracedConnection, Transport},
     Result,
 };
 
-// TODO: some sort of trace/id for each connection for easier log reading
+// TODO(finish): some sort of trace/id for each connection for easier log reading
 
-// TODO: some sort of config file
+// TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
 
 // TODO: doc comment with example usage
@@ -33,6 +35,7 @@ where
     transport: T,
     protocol: P,
     router: Router<P>,
+    connection_counter: AtomicUsize,
 }
 
 impl YarsServer<TcpTransport, HttpProtocol> {
@@ -42,6 +45,7 @@ impl YarsServer<TcpTransport, HttpProtocol> {
             transport: TcpTransport::new(),
             protocol: HttpProtocol,
             router: Router::new(),
+            connection_counter: AtomicUsize::new(0),
         }
     }
 }
@@ -56,6 +60,7 @@ where
             transport,
             protocol,
             router: Router::new(),
+            connection_counter: AtomicUsize::new(0),
         }
     }
 
@@ -84,14 +89,19 @@ where
         let mut connection_handles = Vec::new();
 
         loop {
+            let connection_id = server.connection_counter.fetch_add(1, Relaxed);
+
             // Accept connection with transport layer (in main loop)
-            let conn = server.transport.accept().await?;
+            let conn = server.transport.accept(connection_id).await?;
+
+            // Wrap connection with connection id
+            let conn = TracedConnection::new(conn, connection_id);
 
             // Handle connection in new task
             let server = server.clone();
             let handle = tokio::spawn(async move {
                 if let Err(e) = server.handle_connection(conn).await {
-                    error!("Error handling connection: {}", e);
+                    error!("{connection_id}: Error handling connection: {e}",);
                 }
             });
 
@@ -103,25 +113,25 @@ where
         // self.transport.close(conn).await?;
     }
 
-    async fn handle_connection(&self, mut conn: T::Connection) -> Result<()> {
+    async fn handle_connection(&self, mut conn: TracedConnection<T::Connection>) -> Result<()> {
         // Read request from connection with transport layer
         let raw_request = self.transport.read(&mut conn).await?;
 
         // Parse request bytes using protocol layer
         let Some(request) = self.protocol.parse_request(&raw_request) else {
-            debug!("Failed to parse request");
+            debug!("{}: Failed to parse request", conn.id);
             return Ok(());
         };
 
         // Extract routing key using protocol layer
         let routing_key = self.protocol.extract_routing_key(&request);
-        info!("{}", routing_key);
+        info!("{}: route={routing_key}", conn.id);
 
         // TODO?: could impl middleware here
 
         // Get handler according to routing (according to protocol layer)
         let Some(handler) = self.router.get_request_handler(&routing_key) else {
-            debug!("No handler found for: {}", routing_key);
+            debug!("{}: No handler found for: {routing_key}", conn.id);
             return Ok(());
         };
 

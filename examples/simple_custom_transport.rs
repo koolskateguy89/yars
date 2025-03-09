@@ -2,7 +2,7 @@ use log::LevelFilter;
 use yars::{
     http::{HttpRequest, HttpResponse},
     protocol::HttpProtocol,
-    transport::{Transport, TransportResult},
+    transport::{TracedConnection, Transport, TransportResult},
     Result, YarsServer,
 };
 
@@ -23,15 +23,22 @@ impl Transport for TestTransport {
         todo!()
     }
 
-    async fn accept(&self) -> TransportResult<Self::Connection> {
+    async fn accept(&self, connection_id: usize) -> TransportResult<Self::Connection> {
         todo!()
     }
 
-    async fn read(&self, conn: &mut Self::Connection) -> TransportResult<Vec<u8>> {
+    async fn read(
+        &self,
+        traced_conn: &mut TracedConnection<Self::Connection>,
+    ) -> TransportResult<Vec<u8>> {
         todo!()
     }
 
-    async fn write(&self, conn: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
+    async fn write(
+        &self,
+        traced_conn: &mut TracedConnection<Self::Connection>,
+        response: &[u8],
+    ) -> TransportResult<()> {
         todo!()
     }
 

@@ -4,7 +4,7 @@ use tokio::{
     net::{TcpListener, TcpStream, ToSocketAddrs},
 };
 
-use super::{Transport, TransportResult};
+use super::{TracedConnection, Transport, TransportResult};
 use crate::TransportError;
 
 /// Implementation of the transport layer for TCP connections
@@ -39,18 +39,29 @@ impl Transport for TcpTransport {
         Ok(())
     }
 
-    async fn accept(&self) -> TransportResult<Self::Connection> {
+    async fn accept(&self, connection_id: usize) -> TransportResult<Self::Connection> {
         let (stream, _) = self.listener()?.accept().await?;
-        debug!("accepted TCP connection from {}", stream.peer_addr()?);
+        debug!(
+            "{}: accepted TCP connection from {}",
+            connection_id,
+            stream.peer_addr()?
+        );
         Ok(stream)
     }
 
-    async fn read(&self, stream: &mut Self::Connection) -> TransportResult<Vec<u8>> {
+    async fn read(
+        &self,
+        TracedConnection {
+            connection: stream,
+            id,
+        }: &mut TracedConnection<Self::Connection>,
+    ) -> TransportResult<Vec<u8>> {
         let mut buf = Vec::with_capacity(1024);
         let len = stream.read_buf(&mut buf).await?;
 
         debug!(
-            "bytes read from TCP connection {}: {}",
+            "{}: bytes read from TCP connection {}: {}",
+            id,
             stream.peer_addr()?,
             len,
         );
@@ -62,9 +73,17 @@ impl Transport for TcpTransport {
         Ok(buf)
     }
 
-    async fn write(&self, stream: &mut Self::Connection, response: &[u8]) -> TransportResult<()> {
+    async fn write(
+        &self,
+        TracedConnection {
+            connection: stream,
+            id,
+        }: &mut TracedConnection<Self::Connection>,
+        response: &[u8],
+    ) -> TransportResult<()> {
         debug!(
-            "writing bytes to TCP connection {}: {}",
+            "{}: writing bytes to TCP connection {}: {}",
+            id,
             stream.peer_addr()?,
             response.len(),
         );
