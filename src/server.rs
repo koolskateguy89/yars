@@ -12,6 +12,9 @@ use crate::{
     Result,
 };
 
+// TODO: graceful shutdown
+// TODO: nom for http req parsing
+
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
 
@@ -216,11 +219,8 @@ where
     // TODO?: files
 }
 
-// TODO: allow handlers that return Result<JSON, Error(?)>
 // Really we don't have to do that here, we just need to
 // impl Into<HttpResponse> for JSON
-// But we DO need to handle funcs that return Result
-// actually maybe not, kinda cba
 
 // TODO?: serde, maybe make our own ToJson trait so user
 // can use any json lib they want - that we support (with feature flags)
