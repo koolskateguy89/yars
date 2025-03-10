@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::str::FromStr;
 use std::sync::Arc;
 
 mod parser;
@@ -13,7 +14,7 @@ type Headers = HashMap<String, String>;
 #[derive(Debug)]
 pub struct HttpRequest {
     pub method: RequestMethod,
-    pub uri: Arc<str>,
+    pub uri: String,
     pub headers: Headers,
     pub body: Option<String>,
 }
@@ -33,28 +34,13 @@ pub enum RequestMethod {
 
 impl HttpRequest {
     pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
-        let mut lines = buf.lines();
-
-        let first_line = lines.next()?;
-        let (method, uri) = parser::parse_request_line(first_line)?;
-
-        let headers = parser::parse_headers(&mut lines);
-
-        // TODO: check this by doing a post req
-        // TODO: body
-        // TODO?: keep as bytes
-        let body: String = lines.collect();
-        dbg!(&body);
-
-        Some(HttpRequest {
-            method,
-            uri: uri.into(),
-            headers,
-            body: None,
-        })
+        parser::parse_request(buf)
     }
 
-    // TODO: nom parsing
+    pub(crate) fn parse_request_nom(buf: &str) -> Option<HttpRequest> {
+        parser::parse_request_nom(buf).map(|(_input, req)| req).ok()
+    }
+
     // TODO: perf testing
 }
 
@@ -67,6 +53,13 @@ mod test {
     #[test]
     fn test_parse_request() {
         let req = HttpRequest::parse_request("GET / HTTP/1.1\r\n\r\n");
+        dbg!(&req);
+        assert!(req.is_some());
+    }
+
+    #[test]
+    fn test_parse_request_nom() {
+        let req = HttpRequest::parse_request_nom("GET / HTTP/1.1\r\n\r\n");
         dbg!(&req);
         assert!(req.is_some());
     }

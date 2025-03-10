@@ -12,8 +12,8 @@ use crate::{
     Result,
 };
 
-// TODO: graceful shutdown
 // TODO: nom for http req parsing
+// TODO: graceful shutdown
 
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
@@ -152,7 +152,7 @@ where
 
         // Parse request bytes using protocol layer
         trace!(len = raw_request.len(), "Parsing request");
-        let Some(request) = self.protocol.parse_request(&raw_request) else {
+        let Some(request) = self.protocol.parse_request(raw_request) else {
             info!("Failed to parse request");
             return Ok(());
         };
@@ -193,7 +193,7 @@ where
 macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
-        pub fn $method(self, path: impl Into<std::sync::Arc<str>>, handler: impl ToHandler<HttpProtocol>) -> Self {
+        pub fn $method(self, path: impl ToString, handler: impl ToHandler<HttpProtocol>) -> Self {
             self.route((path, crate::http::RequestMethod::$request_method), handler)
         }
     };

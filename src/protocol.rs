@@ -23,7 +23,7 @@ pub trait Protocol: Send + Sync + 'static {
 
     // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request
-    fn parse_request(&self, raw: &[u8]) -> Option<Self::Req>;
+    fn parse_request(&self, raw: Vec<u8>) -> Option<Self::Req>;
 
     /// Convert a strongly-typed response into raw bytes
     fn serialize_response(&self, response: &Self::Res) -> Vec<u8>;
