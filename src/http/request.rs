@@ -48,11 +48,14 @@ impl HttpRequest {
 
         Some(HttpRequest {
             method,
-            uri: Arc::from(uri),
+            uri: uri.into(),
             headers,
             body: None,
         })
     }
+
+    // TODO: nom parsing
+    // TODO: perf testing
 }
 
 #[cfg(test)]
