@@ -193,7 +193,7 @@ where
 macro_rules! http_method {
     ($method:ident, $request_method:ident) => {
         #[doc = concat!("Registers a `", stringify!($request_method), "` request handler that serves `path` by calling `handler`")]
-        pub fn $method(self, path: impl ToString, handler: impl ToHandler<HttpProtocol>) -> Self {
+        pub fn $method(self, path: impl Into<std::sync::Arc<str>>, handler: impl ToHandler<HttpProtocol>) -> Self {
             self.route((path, crate::http::RequestMethod::$request_method), handler)
         }
     };
@@ -201,7 +201,7 @@ macro_rules! http_method {
 
 /// HTTP specific methods
 // TODO: some proc(?) macro(?) like #[get("/")] or #[post("/")]
-// fn index() -> HttpResponse {
+// fn index() -> Result<HttpResponse> {}
 // will make the function into a struct that impls ToHandler
 impl<T> YarsServer<T, HttpProtocol>
 where

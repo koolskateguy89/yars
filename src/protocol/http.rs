@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::Protocol;
 use crate::http::{HttpRequest, HttpResponse, RequestMethod};
 
@@ -12,10 +14,9 @@ impl Protocol for HttpProtocol {
     type RoutingKey = HttpRoutingKey;
 
     fn parse_request(&self, raw: &[u8]) -> Option<Self::Req> {
-        // TODO: not make a String, instead just parse from bytes
-        let raw_string = String::from_utf8(raw.to_vec()).ok()?;
+        let utf8_str = std::str::from_utf8(raw).ok()?;
 
-        HttpRequest::parse_request(raw_string)
+        HttpRequest::parse_request(utf8_str)
     }
 
     fn serialize_response(&self, response: &Self::Res) -> Vec<u8> {
@@ -41,7 +42,7 @@ impl Protocol for HttpProtocol {
 /// HTTP routing is based on the URI and the request method
 #[derive(PartialEq, Eq, Hash)]
 pub struct HttpRoutingKey {
-    uri: String,
+    uri: Arc<str>,
     method: RequestMethod,
 }
 
@@ -53,11 +54,11 @@ impl std::fmt::Display for HttpRoutingKey {
 
 impl<T> From<(T, RequestMethod)> for HttpRoutingKey
 where
-    T: ToString,
+    T: Into<Arc<str>>,
 {
     fn from((uri, method): (T, RequestMethod)) -> Self {
         Self {
-            uri: uri.to_string(),
+            uri: uri.into(),
             method,
         }
     }

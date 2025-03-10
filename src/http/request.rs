@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 
 mod parser;
 
@@ -12,7 +13,7 @@ type Headers = HashMap<String, String>;
 #[derive(Debug)]
 pub struct HttpRequest {
     pub method: RequestMethod,
-    pub uri: String,
+    pub uri: Arc<str>,
     pub headers: Headers,
     pub body: Option<String>,
 }
@@ -31,11 +32,11 @@ pub enum RequestMethod {
 }
 
 impl HttpRequest {
-    pub(crate) fn parse_request(buf: String) -> Option<HttpRequest> {
+    pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
         let mut lines = buf.lines();
 
         let first_line = lines.next()?;
-        let (method, uri) = parser::parse_status_line(first_line)?;
+        let (method, uri) = parser::parse_request_line(first_line)?;
 
         let headers = parser::parse_headers(&mut lines);
 
@@ -47,18 +48,23 @@ impl HttpRequest {
 
         Some(HttpRequest {
             method,
-            uri: uri.to_string(),
+            uri: Arc::from(uri),
             headers,
             body: None,
         })
     }
+}
 
-    pub(crate) fn parse_request_bytes(mut buf: Vec<u8>) -> Option<HttpRequest> {
-        // TODO
-        // TODO: figure out correct buf param type & how tf to read it lol
-        // let mut lines = tokio::io::AsyncBufReadExt::lines(buf);
-        // buf.reader()
+#[cfg(test)]
+mod test {
+    use super::*;
 
-        todo!()
+    // TODO
+
+    #[test]
+    fn test_parse_request() {
+        let req = HttpRequest::parse_request("GET / HTTP/1.1\r\n\r\n");
+        dbg!(&req);
+        assert!(req.is_some());
     }
 }

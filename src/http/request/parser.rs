@@ -1,16 +1,17 @@
 use std::str::Lines;
 
 // TODO: use nom
-// use nom::*;
+use nom::{
+    bytes::complete::{tag, take_while_m_n},
+    combinator::map_res,
+    IResult, Parser,
+};
 
-use super::{Headers, RequestMethod};
-
-pub(super) fn parse_status_line_bytes() {
-    // TODO?
-}
+use super::{Headers, HttpRequest, RequestMethod};
 
 /// Method Request-URI HTTP-Version
-pub(super) fn parse_status_line(status_line: &str) -> Option<(RequestMethod, &str)> {
+pub(super) fn parse_request_line(status_line: &str) -> Option<(RequestMethod, &str)> {
+    dbg!(status_line);
     let mut status_line = status_line.split_whitespace();
 
     let method = status_line.next()?;
