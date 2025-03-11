@@ -54,6 +54,11 @@ impl HttpResponseBuilder {
         self.header("Content-Type", "text/html").body(html)
     }
 
+    /// Adds header `Content-Type: text/javascript`.
+    pub fn js(self, js: impl Into<Vec<u8>>) -> HttpResponse {
+        self.header("Content-Type", "text/javascript").body(js)
+    }
+
     /// Adds header `Content-Type: application/xml`.
     ///
     /// If you want `text/xml`, add a custom header instead with [`Self::header()`]

@@ -55,10 +55,6 @@ impl Transport for TcpTransport {
             "Successfully read from TCP connection",
         );
 
-        if buf.is_empty() {
-            return Ok(vec![]);
-        }
-
         Ok(buf)
     }
 

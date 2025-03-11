@@ -13,7 +13,7 @@ pub struct HttpRequest {
     pub method: RequestMethod,
     pub uri: String,
     pub headers: Headers,
-    pub body: Option<String>,
+    pub body: Option<Vec<u8>>,
 }
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Hash)]
@@ -30,8 +30,11 @@ pub enum RequestMethod {
 }
 
 impl HttpRequest {
-    pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
-        parser::parse_request_nom(buf).map(|(_input, req)| req).ok()
+    pub(crate) fn parse_request(raw: Vec<u8>) -> Option<HttpRequest> {
+        // let utf8_str = String::from_utf8(raw).ok()?;
+        parser::parse_request_nom(&raw)
+            .map(|(_input, req)| req)
+            .ok()
     }
 }
 
@@ -43,7 +46,7 @@ mod test {
 
     #[test]
     fn test_parse_request() {
-        let req = HttpRequest::parse_request("GET / HTTP/1.1\r\n\r\n");
+        let req = HttpRequest::parse_request(b"GET / HTTP/1.1\r\n\r\n".to_vec());
         dbg!(&req);
         assert!(req.is_some());
     }

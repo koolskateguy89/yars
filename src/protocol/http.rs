@@ -12,9 +12,7 @@ impl Protocol for HttpProtocol {
     type RoutingKey = HttpRoutingKey;
 
     fn parse_request(&self, raw: Vec<u8>) -> Option<Self::Req> {
-        let utf8_str = String::from_utf8(raw).ok()?;
-
-        HttpRequest::parse_request(&utf8_str)
+        HttpRequest::parse_request(raw)
     }
 
     fn serialize_response(&self, response: &Self::Res) -> Vec<u8> {
@@ -67,7 +65,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn routing_key_displays_correctly() {
+    fn http_routing_key_displays_correctly() {
         let key = HttpRoutingKey {
             uri: "/route".to_string(),
             method: RequestMethod::GET,
@@ -77,7 +75,7 @@ mod tests {
     }
 
     #[test]
-    fn test_http_protocol() {
+    fn http_protocol_parses_request_and_extracts_routing_key() {
         let protocol = HttpProtocol;
 
         let raw = b"GET / HTTP/1.1\r\n\r\n".to_vec();

@@ -1,11 +1,11 @@
 //! https://www.w3.org/Protocols/HTTP/1.0/spec.html
 
-use std::str::Lines;
+use std::str::{self, Lines};
 
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until1},
-    combinator::map,
+    combinator::{map, map_res},
     multi::many0,
     sequence::{separated_pair, terminated},
     IResult, Parser,
@@ -14,7 +14,7 @@ use nom::{
 use super::{Headers, HttpRequest, RequestMethod};
 use crate::constants::CRLF;
 
-// TODO!: handle body (might need to change parsers to &[u8])
+// todo?: use newline combinator instead of CRLF
 // TODO: remove old parser code
 
 /// Method Request-URI HTTP-Version
@@ -82,9 +82,6 @@ pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
 
     let headers = old_parse_headers(&mut lines);
 
-    // TODO: check this by doing a post req
-    // TODO: body
-    // TODO?: keep as bytes
     let body: String = lines.collect();
     dbg!(&body);
 
@@ -98,7 +95,7 @@ pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
 
 // nom
 
-fn http_method(input: &str) -> IResult<&str, RequestMethod> {
+fn http_method(input: &[u8]) -> IResult<&[u8], RequestMethod> {
     alt((
         map(tag("GET"), |_| RequestMethod::GET),
         map(tag("POST"), |_| RequestMethod::POST),
@@ -113,17 +110,17 @@ fn http_method(input: &str) -> IResult<&str, RequestMethod> {
     .parse(input)
 }
 
-fn http_version(input: &str) -> IResult<&str, &str> {
+fn http_version(input: &[u8]) -> IResult<&[u8], &[u8]> {
     alt((tag("HTTP/1.0"), tag("HTTP/1.1"))).parse(input)
 }
 
 /// Method Request-URI HTTP-Version CRLF
-fn request_line(input: &str) -> IResult<&str, (RequestMethod, &str)> {
+fn request_line(input: &[u8]) -> IResult<&[u8], (RequestMethod, &str)> {
     map(
         (
             http_method,
             tag(" "),
-            take_until1(" "), // uri
+            map_res(take_until1(" "), str::from_utf8), // uri
             tag(" "),
             http_version,
             tag(CRLF),
@@ -134,12 +131,12 @@ fn request_line(input: &str) -> IResult<&str, (RequestMethod, &str)> {
 }
 
 /// NAME: VALUE CRLF
-fn header(input: &str) -> IResult<&str, (&str, &str)> {
+fn header(input: &[u8]) -> IResult<&[u8], (&str, &str)> {
     terminated(
         separated_pair(
-            take_until1(": "), // header name
+            map_res(take_until1(": "), str::from_utf8), // header name
             tag(": "),
-            take_until1(CRLF), // header value
+            map_res(take_until1(CRLF), str::from_utf8), // header value
         ),
         tag(CRLF),
     )
@@ -147,7 +144,7 @@ fn header(input: &str) -> IResult<&str, (&str, &str)> {
 }
 
 /// Trailing newline after headers
-fn headers(input: &str) -> IResult<&str, Headers> {
+fn headers(input: &[u8]) -> IResult<&[u8], Headers> {
     map(terminated(many0(header), tag(CRLF)), |header_list| {
         // Need to clone into String
         header_list
@@ -159,18 +156,25 @@ fn headers(input: &str) -> IResult<&str, Headers> {
 }
 
 /// <https://www.w3.org/Protocols/HTTP/1.0/spec.html>
-pub(super) fn parse_request_nom(input: &str) -> IResult<&str, HttpRequest> {
+pub(super) fn parse_request_nom(input: &[u8]) -> IResult<&[u8], HttpRequest> {
     let (input, (method, uri)) = request_line(input)?;
     let (input, headers) = headers(input)?;
 
-    // TODO?: body should be rest of input
+    // Body is rest of input
+    let body = if input.is_empty() {
+        None
+    } else {
+        // TODO: if possible, not copy, just take from original input because we _could_ own the input
+        Some(input.to_vec())
+    };
+
     Ok((
-        input,
+        b"",
         HttpRequest {
             method,
             uri: uri.to_string(),
             headers,
-            body: None,
+            body,
         },
     ))
 }
@@ -237,68 +241,71 @@ mod tests {
 
     // nom
 
+    // to avoid having to write `&b""[..]` everywhere
+    const EMPTY: &[u8] = b"";
+
     #[test]
     fn parse_http_method() {
-        assert_eq!(http_method("GET"), Ok(("", RequestMethod::GET)));
-        assert_eq!(http_method("POST"), Ok(("", RequestMethod::POST)));
-        assert_eq!(http_method("PUT"), Ok(("", RequestMethod::PUT)));
-        assert_eq!(http_method("DELETE"), Ok(("", RequestMethod::DELETE)));
-        assert_eq!(http_method("HEAD"), Ok(("", RequestMethod::HEAD)));
-        assert_eq!(http_method("OPTIONS"), Ok(("", RequestMethod::OPTIONS)));
-        assert_eq!(http_method("CONNECT"), Ok(("", RequestMethod::CONNECT)));
-        assert_eq!(http_method("TRACE"), Ok(("", RequestMethod::TRACE)));
-        assert_eq!(http_method("PATCH"), Ok(("", RequestMethod::PATCH)));
+        assert_eq!(http_method(b"GET"), Ok((EMPTY, RequestMethod::GET)));
+        assert_eq!(http_method(b"POST"), Ok((EMPTY, RequestMethod::POST)));
+        assert_eq!(http_method(b"PUT"), Ok((EMPTY, RequestMethod::PUT)));
+        assert_eq!(http_method(b"DELETE"), Ok((EMPTY, RequestMethod::DELETE)));
+        assert_eq!(http_method(b"HEAD"), Ok((EMPTY, RequestMethod::HEAD)));
+        assert_eq!(http_method(b"OPTIONS"), Ok((EMPTY, RequestMethod::OPTIONS)));
+        assert_eq!(http_method(b"CONNECT"), Ok((EMPTY, RequestMethod::CONNECT)));
+        assert_eq!(http_method(b"TRACE"), Ok((EMPTY, RequestMethod::TRACE)));
+        assert_eq!(http_method(b"PATCH"), Ok((EMPTY, RequestMethod::PATCH)));
     }
 
     #[test]
     fn parse_request_line() {
         assert_eq!(
-            request_line("GET / HTTP/1.0\r\n"),
-            Ok(("", (RequestMethod::GET, "/")))
+            request_line(b"GET / HTTP/1.0\r\n"),
+            Ok((EMPTY, (RequestMethod::GET, "/")))
         );
 
         assert_eq!(
-            request_line("GET /test-test HTTP/1.1\r\n"),
-            Ok(("", (RequestMethod::GET, "/test-test")))
+            request_line(b"GET /test-test HTTP/1.1\r\n"),
+            Ok((EMPTY, (RequestMethod::GET, "/test-test")))
         );
 
         assert_eq!(
-            request_line("POST /abc/okay/okay HTTP/1.1\r\n"),
-            Ok(("", (RequestMethod::POST, "/abc/okay/okay")))
+            request_line(b"POST /abc/okay/okay HTTP/1.1\r\n"),
+            Ok((EMPTY, (RequestMethod::POST, "/abc/okay/okay")))
         );
     }
 
     #[test]
     fn request_line_doesnt_accept_incorrect_http_version() {
-        assert!(request_line("GET / HTTP/2.0\r\n").is_err());
+        assert!(request_line(b"GET / HTTP/2.0\r\n").is_err());
     }
 
     #[test]
     fn parse_header() {
         assert_eq!(
-            header("Host: localhost:8080\r\n"),
-            Ok(("", ("Host", "localhost:8080")))
+            header(b"Host: localhost:8080\r\n"),
+            Ok((EMPTY, ("Host", "localhost:8080")))
         );
         assert_eq!(
-            header("User-Agent: curl/7.68.0\r\n"),
-            Ok(("", ("User-Agent", "curl/7.68.0")))
+            header(b"User-Agent: curl/7.68.0\r\n"),
+            Ok((EMPTY, ("User-Agent", "curl/7.68.0")))
         );
 
         // Should keep rest of input
         assert_eq!(
-            header("Accept: */*\r\nRest"),
-            Ok(("Rest", ("Accept", "*/*")))
+            header(b"Accept: */*\r\nRest"),
+            Ok((&b"Rest"[..], ("Accept", "*/*")))
         );
     }
 
     #[test]
     fn header_doesnt_accept_missing_newline() {
-        assert!(header("User-Agent: curl/7.68.0").is_err());
+        assert!(header(b"User-Agent: curl/7.68.0").is_err());
     }
 
     #[test]
     fn parse_headers() {
-        let input = "Host: localhost:8080\r\n\
+        let input = b"Host: localhost:8080\r\n\
         User-Agent: curl/7.68.0\r\n\
         Accept: */*\r\n\
         \r\n";
@@ -306,7 +313,7 @@ mod tests {
         assert_eq!(
             headers(input),
             Ok((
-                "",
+                EMPTY,
                 HashMap::from([
                     ("Host".to_string(), "localhost:8080".to_string()),
                     ("User-Agent".to_string(), "curl/7.68.0".to_string()),
@@ -317,18 +324,18 @@ mod tests {
     }
 
     #[test]
-    fn parse_empty_headers() {
-        assert_eq!(headers("\r\n"), Ok(("", HashMap::new())));
+    fn parses_empty_headers() {
+        assert_eq!(headers(b"\r\n"), Ok((EMPTY, HashMap::new())));
     }
 
     #[test]
     fn headers_doesnt_accept_missing_trailing_newline() {
-        assert!(headers("User-Agent: curl/7.68.0\r\n").is_err());
+        assert!(headers(b"User-Agent: curl/7.68.0\r\n").is_err());
     }
 
     #[test]
     fn test_parse_request() {
-        let req = parse_request_nom("GET / HTTP/1.1\r\n\r\n");
+        let req = parse_request_nom(b"GET / HTTP/1.1\r\n\r\n");
         dbg!(&req);
         assert!(req.is_ok());
 

@@ -135,7 +135,7 @@ where
             // tbh could use empty value and let transport layer handle it
             // actually no cos then we would have to pass the span to the transport layer
             // https://docs.rs/tracing/latest/tracing/#recording-fields
-            // TODO?: route as later param
+            // TODO?: route as later param - but how would we pass span to task?
             let conn_span = error_span!("connection", id = conn_id);
             // Enter the span before accepting connection so the connection ID is included in
             // transport layer logs, which could include peer/remote address
