@@ -4,18 +4,16 @@
 
 YARS is a lightweight server framework written from scratch in Rust. It focuses on **raw data transport, protocol parsing, and request routing**, serving as a hands-on exploration into **low-level server design**. This project is intended for learning purposes and does not implement the full feature set of mature frameworks like Actix-Web or Axum.
 
-
 ## TODO
 
 - [ ] custom transport example
 - [ ] echo example (need to handle http body parsing first)
-- [ ] integration tests with `/tests` dir https://doc.rust-lang.org/book/ch11-03-test-organization.html
 - [ ] mini-redis example
 - [ ] web app example (simple, just a few pages with a form or smthn)
 - [ ] ? UDP transport
-- [ ] more protocol implementations (e.g. HTTP/2, Bencode)
+- [ ] more protocol implementations (e.g. HTTP/2, [Bencode](https://en.wikipedia.org/wiki/Bencode))
 
-### Example Usage
+## Example Usage
 
 See the [`examples`](examples) directory for more comprehensive examples.
 
@@ -55,6 +53,10 @@ async fn main() -> yars::Result<()> {
         .await
 }
 ```
+
+## Observability
+
+- Uses [tracing](https://docs.rs/tracing/latest/tracing/) for structured logging
 
 ## Known Issues/Limitations
 
