@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::Protocol;
 use crate::http::{HttpRequest, HttpResponse, RequestMethod};
 
@@ -61,5 +59,34 @@ where
             uri: uri.to_string(),
             method,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn routing_key_displays_correctly() {
+        let key = HttpRoutingKey {
+            uri: "/route".to_string(),
+            method: RequestMethod::GET,
+        };
+
+        assert_eq!(key.to_string(), "GET /route");
+    }
+
+    #[test]
+    fn test_http_protocol() {
+        let protocol = HttpProtocol;
+
+        let raw = b"GET / HTTP/1.1\r\n\r\n".to_vec();
+        let req = protocol.parse_request(raw).unwrap();
+        assert_eq!(req.method, RequestMethod::GET);
+        assert_eq!(req.uri, "/");
+
+        let routing_key = protocol.extract_routing_key(&req);
+        assert_eq!(routing_key.uri, "/");
+        assert_eq!(routing_key.method, RequestMethod::GET);
     }
 }

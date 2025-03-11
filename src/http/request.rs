@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::str::FromStr;
-use std::sync::Arc;
 
 mod parser;
 
@@ -34,14 +32,8 @@ pub enum RequestMethod {
 
 impl HttpRequest {
     pub(crate) fn parse_request(buf: &str) -> Option<HttpRequest> {
-        parser::parse_request(buf)
-    }
-
-    pub(crate) fn parse_request_nom(buf: &str) -> Option<HttpRequest> {
         parser::parse_request_nom(buf).map(|(_input, req)| req).ok()
     }
-
-    // TODO: perf testing
 }
 
 #[cfg(test)]
@@ -53,13 +45,6 @@ mod test {
     #[test]
     fn test_parse_request() {
         let req = HttpRequest::parse_request("GET / HTTP/1.1\r\n\r\n");
-        dbg!(&req);
-        assert!(req.is_some());
-    }
-
-    #[test]
-    fn test_parse_request_nom() {
-        let req = HttpRequest::parse_request_nom("GET / HTTP/1.1\r\n\r\n");
         dbg!(&req);
         assert!(req.is_some());
     }

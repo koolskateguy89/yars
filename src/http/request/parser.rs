@@ -14,7 +14,8 @@ use nom::{
 use super::{Headers, HttpRequest, RequestMethod};
 use crate::constants::CRLF;
 
-const HTTP_1_1: &str = "HTTP/1.1";
+// TODO!: handle body (might need to change parsers to &[u8])
+// TODO: remove old parser code
 
 /// Method Request-URI HTTP-Version
 fn old_parse_request_line(status_line: &str) -> Option<(RequestMethod, &str)> {
@@ -112,6 +113,10 @@ fn http_method(input: &str) -> IResult<&str, RequestMethod> {
     .parse(input)
 }
 
+fn http_version(input: &str) -> IResult<&str, &str> {
+    alt((tag("HTTP/1.0"), tag("HTTP/1.1"))).parse(input)
+}
+
 /// Method Request-URI HTTP-Version CRLF
 fn request_line(input: &str) -> IResult<&str, (RequestMethod, &str)> {
     map(
@@ -120,7 +125,7 @@ fn request_line(input: &str) -> IResult<&str, (RequestMethod, &str)> {
             tag(" "),
             take_until1(" "), // uri
             tag(" "),
-            tag(HTTP_1_1), // http version
+            http_version,
             tag(CRLF),
         ),
         |(method, _, uri, _, _, _)| (method, uri),
@@ -153,6 +158,7 @@ fn headers(input: &str) -> IResult<&str, Headers> {
     .parse(input)
 }
 
+/// <https://www.w3.org/Protocols/HTTP/1.0/spec.html>
 pub(super) fn parse_request_nom(input: &str) -> IResult<&str, HttpRequest> {
     let (input, (method, uri)) = request_line(input)?;
     let (input, headers) = headers(input)?;
@@ -247,8 +253,13 @@ mod tests {
     #[test]
     fn parse_request_line() {
         assert_eq!(
-            request_line("GET / HTTP/1.1\r\n"),
+            request_line("GET / HTTP/1.0\r\n"),
             Ok(("", (RequestMethod::GET, "/")))
+        );
+
+        assert_eq!(
+            request_line("GET /test-test HTTP/1.1\r\n"),
+            Ok(("", (RequestMethod::GET, "/test-test")))
         );
 
         assert_eq!(
@@ -259,7 +270,6 @@ mod tests {
 
     #[test]
     fn request_line_doesnt_accept_incorrect_http_version() {
-        assert!(request_line("GET / HTTP/1.0\r\n").is_err());
         assert!(request_line("GET / HTTP/2.0\r\n").is_err());
     }
 
@@ -314,5 +324,20 @@ mod tests {
     #[test]
     fn headers_doesnt_accept_missing_trailing_newline() {
         assert!(headers("User-Agent: curl/7.68.0\r\n").is_err());
+    }
+
+    #[test]
+    fn test_parse_request() {
+        let req = parse_request_nom("GET / HTTP/1.1\r\n\r\n");
+        dbg!(&req);
+        assert!(req.is_ok());
+
+        let (input, req) = req.unwrap();
+        assert!(input.is_empty());
+
+        assert_eq!(req.method, RequestMethod::GET);
+        assert_eq!(req.uri, "/");
+        assert!(req.headers.is_empty());
+        // TODO: body
     }
 }

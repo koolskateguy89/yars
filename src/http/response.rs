@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::constants;
 
-use super::response_builder::HttpResponseBuilder;
 use super::HttpStatusCode;
 
 /// HTTP response
@@ -121,7 +120,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_status_line() {
+    fn status_line() {
         let response = HttpResponse {
             status: HttpStatusCode::Ok,
             headers: HashMap::new(),
@@ -132,7 +131,7 @@ mod tests {
     }
 
     #[test]
-    fn test_headers() {
+    fn headers() {
         let mut headers = HashMap::new();
         headers.insert("Content-Type".to_string(), "text/html".to_string());
 
@@ -149,7 +148,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filters_forbidden_headers() {
+    fn forbidden_headers_are_not_serialised() {
         let mut headers = HashMap::new();
         headers.insert("Proxy-Connection".to_string(), "keep-alive".to_string());
         headers.insert(
@@ -170,7 +169,7 @@ mod tests {
     }
 
     #[test]
-    fn test_body() {
+    fn body() {
         let response = HttpResponse {
             status: HttpStatusCode::Ok,
             headers: HashMap::new(),

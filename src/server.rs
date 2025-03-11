@@ -12,7 +12,6 @@ use crate::{
     Result,
 };
 
-// TODO: nom for http req parsing
 // TODO: graceful shutdown
 
 // TODO: some sort of config file: max_connections, max_request_size, etc
