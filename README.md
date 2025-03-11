@@ -15,7 +15,7 @@ YARS is a lightweight server framework written from scratch in Rust. It focuses 
 
 ## Example Usage
 
-See the [`examples`](examples) directory for more comprehensive examples.
+> See the [`examples`](examples) directory for more comprehensive examples.
 
 ```rust
 //! examples/hello_world.rs

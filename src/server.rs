@@ -13,6 +13,7 @@ use crate::{
 };
 
 // TODO: graceful shutdown
+// TODO: async handlers -> will have to change a lot of examples
 
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
