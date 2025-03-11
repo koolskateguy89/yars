@@ -13,3 +13,6 @@ simple:
 
 form:
   cargo run --example form
+
+web:
+  cargo run --example web_app
