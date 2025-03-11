@@ -5,14 +5,6 @@ use yars::{
     Result, YarsServer,
 };
 
-fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
-    Ok(HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#))
-}
-
-fn okay(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
-    Ok("ok")
-}
-
 struct TestTransport;
 
 impl Transport for TestTransport {
@@ -37,6 +29,14 @@ impl Transport for TestTransport {
     async fn close(self, conn: Self::Connection) -> TransportResult<()> {
         todo!()
     }
+}
+
+fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok(HttpResponse::Ok().header("a", "b").json(r#"{"abc": 123}"#))
+}
+
+fn okay(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+    Ok("ok")
 }
 
 #[tokio::main]

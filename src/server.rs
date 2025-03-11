@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
 use tokio::net::ToSocketAddrs;
-use tracing::{debug, error, error_span, info, info_span, trace, Instrument};
+use tracing::{debug, error, error_span, info, info_span, trace, warn, Instrument};
 
 use crate::{
     protocol::{HttpProtocol, Protocol, ToHandler},
@@ -19,6 +19,8 @@ use crate::{
 // TODO? type safe builder for build YarsServer when have more options
 
 // TODO: doc comment with example usage
+/// The main entrypoint for the Yars server.
+///
 /// Logging should be done in the transport.
 ///
 /// Server events are logged using the [tracing] crate. A subscriber must be set up by the user.
@@ -27,25 +29,41 @@ use crate::{
 /// the protocol and transport layers and their associated types all need to be [`Send`] and
 /// [`Sync`].
 ///
-/// ## Example Usage
-///
+/// # Example Usage
 /// ```rust
-/// use yars::YarsServer;
-/// use yars::http::{HttpRequest, HttpResponse};
+/// use yars::{
+///     http::{HttpRequest, HttpResponse, RequestMethod},
+///     protocol::HttpProtocol,
+///     transport::TcpTransport,
+///     YarsServer,
+/// };
 ///
-/// fn index(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
-///     Ok(HttpResponse::Ok().body("Hello, world!"))
+/// // Handlers can return any Result<Into<HttpResponse>, Into<Box<dyn std::error::Error>>>
+/// fn hello(_req: HttpRequest) -> anyhow::Result<HttpResponse> {
+///     Ok(HttpResponse::Ok().text("Hello, World!"))
+/// }
+///
+/// fn not_found(_req: HttpRequest) -> yars::Result<HttpResponse> {
+///     Ok(HttpResponse::NotFound().text("Not Found"))
 /// }
 ///
 /// #[tokio::main]
 /// async fn main() -> yars::Result<()> {
-///     tracing_subscriber::fmt().init();
+///     tracing_subscriber::fmt()
+///         .with_target(false)
+///         .with_max_level(tracing::Level::INFO)
+///         .init();
 ///
-///     YarsServer::default_server()
-///         .get("/", index)
-///         .listen("127.0.0.1:8080")
+///     YarsServer::new(TcpTransport::default(), HttpProtocol)
+///         .route(("/", RequestMethod::GET), hello)
+///         // note http protocol exposes shorthand helpers
+///         .get("/hello", hello)
+///         // can define a default handler for all unhandled routes
+///         .default_handler(not_found)
+///         .listen("127.0.0.1:8000")
 ///         .await
 /// }
+/// ```
 #[derive(Debug)]
 pub struct YarsServer<T, P>
 where
@@ -58,6 +76,7 @@ where
     conn_counter: AtomicUsize,
 }
 
+// Our default is a HTTP server that accepts TCP connections
 impl YarsServer<TcpTransport, HttpProtocol> {
     /// Instantiates a HTTP server that accepts TCP connections
     pub fn default_server() -> Self {
@@ -75,6 +94,7 @@ where
     T: Transport,
     P: Protocol,
 {
+    /// Instantiate a new Yars server with the given transport and protocol
     pub fn new(transport: T, protocol: P) -> Self {
         Self {
             transport,
@@ -94,11 +114,14 @@ where
         self
     }
 
+    /// Set the default handler, which will be called if no route is found for a request
     pub fn default_handler(mut self, handler: impl ToHandler<P>) -> Self {
         self.router.set_default_handler(handler);
         self
     }
 
+    /// Starts the server. This will bind the transport to the given address and start listening
+    /// for incoming connections.
     pub async fn listen<A: ToSocketAddrs>(mut self, addr: A) -> Result<()> {
         // TODO?: debug print type of transport and protocol
         debug!("{:#?}", self.router);
@@ -150,10 +173,15 @@ where
             .instrument(info_span!("read_connection"))
             .await?;
 
+        if raw_request.is_empty() {
+            debug!("Empty request, maybe connection closed");
+            return Ok(());
+        }
+
         // Parse request bytes using protocol layer
         trace!(len = raw_request.len(), "Parsing request");
         let Some(request) = self.protocol.parse_request(raw_request) else {
-            info!("Failed to parse request");
+            warn!("Failed to parse request");
             return Ok(());
         };
 

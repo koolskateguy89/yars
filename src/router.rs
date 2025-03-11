@@ -39,14 +39,21 @@ where
         }
     }
 
+    /// Adds a route with key [`routing_key`][Protocol::RoutingKey] that will call the given
+    /// [`handler`][Handler]
     pub(crate) fn add_route(&mut self, routing_key: P::RoutingKey, handler: impl ToHandler<P>) {
         self.routes.insert(routing_key, handler.to_handler());
     }
 
+    /// Sets the default handler. It will be returned in
+    /// [`get_request_handler`][Self::get_request_handler] if no route matches
     pub(crate) fn set_default_handler(&mut self, handler: impl ToHandler<P>) {
         self.default_handler = Some(handler.to_handler());
     }
 
+    /// Gets the handler for the given [`routing_key`][Protocol::RoutingKey], according to handlers
+    /// previously added with [`add_route`][Self::add_route]. If no handler is found, returns the
+    /// default handler, if set.
     pub(crate) fn get_request_handler(&self, routing_key: &P::RoutingKey) -> Option<&Handler<P>> {
         let maybe_boxed_handler = self
             .routes
@@ -61,7 +68,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::HttpProtocol;
+    use crate::protocol::{HttpProtocol, Protocol};
 
     // TODO
 

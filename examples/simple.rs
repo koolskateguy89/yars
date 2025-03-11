@@ -12,12 +12,11 @@ fn okay(_req: HttpRequest) -> anyhow::Result<impl Into<HttpResponse>> {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> yars::Result<()> {
     // Print formatted traces to stdout
     tracing_subscriber::fmt()
         .with_target(false)
         .with_max_level(tracing::Level::TRACE)
-        .with_max_level(tracing::Level::DEBUG)
         .init();
 
     YarsServer::default_server()
@@ -27,7 +26,5 @@ async fn main() -> anyhow::Result<()> {
             Ok(HttpResponse::Ok().html(include_str!("clickme.html")))
         })
         .listen("127.0.0.1:8000")
-        .await?;
-
-    Ok(())
+        .await
 }
