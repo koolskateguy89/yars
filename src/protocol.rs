@@ -3,7 +3,7 @@
 //! Supported protocols:
 //! - HTTP
 
-mod http;
+pub(crate) mod http;
 
 pub use http::HttpProtocol;
 
@@ -21,7 +21,6 @@ pub trait Protocol: Send + Sync + 'static {
     /// The routing key type for this protocol
     type RoutingKey: Send + Sync + Eq + std::hash::Hash + std::fmt::Display;
 
-    // TODO: change to result, or maybe result<option>, idk
     /// Convert raw bytes into a strongly-typed request
     fn parse_request(&self, raw: Vec<u8>) -> Option<Self::Req>;
 

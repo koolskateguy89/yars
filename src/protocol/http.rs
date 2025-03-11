@@ -38,7 +38,7 @@ impl Protocol for HttpProtocol {
 }
 
 /// HTTP routing is based on the URI and the request method
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Clone)]
 pub struct HttpRoutingKey {
     uri: String,
     method: RequestMethod,

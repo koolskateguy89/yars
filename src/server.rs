@@ -17,7 +17,6 @@ use crate::{
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
 
-// TODO: doc comment with example usage
 /// The main entrypoint for the Yars server.
 ///
 /// Logging should be done in the transport.
@@ -136,6 +135,7 @@ where
             // tbh could use empty value and let transport layer handle it
             // actually no cos then we would have to pass the span to the transport layer
             // https://docs.rs/tracing/latest/tracing/#recording-fields
+            // TODO?: route as later param
             let conn_span = error_span!("connection", id = conn_id);
             // Enter the span before accepting connection so the connection ID is included in
             // transport layer logs, which could include peer/remote address

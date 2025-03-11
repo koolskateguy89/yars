@@ -53,4 +53,6 @@ pub trait Transport: Send + Sync + 'static {
 
     /// TODO
     async fn close(self, conn: Self::Connection) -> TransportResult<()>;
+
+    // TODO?: shutdown
 }

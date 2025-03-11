@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 mod parser;
 
+// TODO?: headers should be map<string, vec<string>>
 type Headers = HashMap<String, String>;
-
-// TODO: body content negotiation, e.g. json (serde or whatever - feature flag)
 
 /// HTTP request
 ///

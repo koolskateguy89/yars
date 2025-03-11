@@ -68,13 +68,38 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::protocol::{HttpProtocol, Protocol};
+    use crate::{
+        http::RequestMethod,
+        protocol::{http::HttpRoutingKey, HttpProtocol, Protocol},
+    };
 
-    // TODO
+    const KEY: (&str, RequestMethod) = ("/", RequestMethod::GET);
 
     #[test]
-    fn test_default_handler() {
-        // TODO
+    fn can_add_route() {
+        let mut router = Router::<HttpProtocol>::new();
+        let key: HttpRoutingKey = KEY.into();
+
+        assert!(router.get_request_handler(&key).is_none());
+
+        let handler = |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
+        router.add_route(key.clone(), handler);
+
+        assert!(router.get_request_handler(&key).is_some());
+    }
+
+    #[test]
+    fn can_set_default_handler() {
+        let mut router = Router::<HttpProtocol>::new();
+        let key: HttpRoutingKey = KEY.into();
+
+        assert!(router.get_request_handler(&key).is_none());
+
+        let default_handler =
+            |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
+        router.set_default_handler(default_handler);
+
+        assert!(router.get_request_handler(&key).is_some());
     }
 
     #[test]
