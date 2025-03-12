@@ -144,6 +144,7 @@ fn header(input: &[u8]) -> IResult<&[u8], (&str, &str)> {
 }
 
 /// Trailing newline after headers
+/// <https://www.w3.org/Protocols/HTTP/1.0/spec.html#Message-Headers>
 fn headers(input: &[u8]) -> IResult<&[u8], Headers> {
     map(terminated(many0(header), tag(CRLF)), |header_list| {
         // Need to clone into String
