@@ -30,13 +30,16 @@ pub trait Transport: Send + Sync + 'static {
     /// Bind the transport to its listening address.
     ///
     /// Should provide a detailed log message saying that the transport is listening on the given address.
-    async fn bind(&mut self, local_addr: impl ToSocketAddrs) -> TransportResult<()>;
+    fn bind(
+        &mut self,
+        local_addr: impl ToSocketAddrs,
+    ) -> impl std::future::Future<Output = TransportResult<()>>;
 
     /// TODO
     /// Accept a new connection.
     ///
     /// Connection-less transports should return `Ok(())`.
-    async fn accept(&self) -> TransportResult<Self::Connection>;
+    fn accept(&self) -> impl std::future::Future<Output = TransportResult<Self::Connection>>;
 
     /// TODO
     fn read(
@@ -52,7 +55,10 @@ pub trait Transport: Send + Sync + 'static {
     ) -> impl Future<Output = TransportResult<()>> + Send;
 
     /// TODO
-    async fn close(self, conn: Self::Connection) -> TransportResult<()>;
+    fn shutdown_conn(
+        &self,
+        conn: Self::Connection,
+    ) -> impl Future<Output = TransportResult<()>> + Send;
 
-    // TODO?: shutdown
+    // TODO?: shutdown entire transport
 }

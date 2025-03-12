@@ -2,7 +2,7 @@ use std::sync::atomic::AtomicUsize;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 
-use tokio::net::ToSocketAddrs;
+use tokio::{net::ToSocketAddrs, signal, task::JoinHandle};
 use tracing::{debug, error, error_span, info, info_span, trace, warn, Instrument};
 
 use crate::{
@@ -127,8 +127,32 @@ where
 
         self.transport.bind(addr).await?;
 
+        // Tbh I have no idea if I am doing this correctly
+        // a TaskTracker or similar may be better
+        // https://docs.rs/tokio-util/latest/tokio_util/task/task_tracker/struct.TaskTracker.html
+        let mut conn_handles = Vec::new();
+
+        tokio::select! {
+            _ = self.listen_inner(&mut conn_handles) => {
+                // This should never happen
+                info!("Server shutting down");
+            },
+            _ = signal::ctrl_c() => {
+                info!("Received SIGINT, shutting down");
+            },
+        }
+
+        // TODO: close/abort all open connection tasks
+        // idk if clearing will actually close the tasks - we don't even need to clear really, can just drop
+        // but then really is there a point to storing them in the first place?
+        conn_handles.clear();
+
+        // self.transport.close().await?;
+        Ok(())
+    }
+
+    async fn listen_inner(self, conn_handles: &mut Vec<JoinHandle<()>>) -> Result<()> {
         let server = Arc::new(self);
-        let mut connection_handles = Vec::new();
 
         loop {
             let conn_id = server.conn_counter.fetch_add(1, Relaxed);
@@ -142,34 +166,33 @@ where
             // transport layer logs, which could include peer/remote address
             let _entered = conn_span.enter();
 
-            // Accept connection with transport layer (in main loop)
-            let conn = server.transport.accept().await?;
+            // Accept connection with transport layer
+            let mut conn = server.transport.accept().await?;
 
             // Handle connection in new task
             let server = server.clone();
             let handle = tokio::spawn(
                 async move {
-                    if let Err(e) = server.handle_connection(conn).await {
-                        error!(?e, "Error handling connection",);
+                    if let Err(e) = server.handle_connection(&mut conn).await {
+                        error!(?e, "Error handling connection");
+                    }
+                    if let Err(e) = server.transport.shutdown_conn(conn).await {
+                        error!(?e, "Error shutting down connection");
                     }
                 }
                 .in_current_span(),
             );
 
-            // TODO?: store handles with an id - is there a point?
-            connection_handles.push(handle);
+            conn_handles.push(handle);
         }
-
-        // TODO?: close all tasks
-        // self.transport.close(conn).await?;
     }
 
-    async fn handle_connection(&self, mut conn: T::Connection) -> Result<()> {
+    async fn handle_connection(&self, conn: &mut T::Connection) -> Result<()> {
         // Read request from connection with transport layer
         trace!("Attempting to read from connection");
         let raw_request = self
             .transport
-            .read(&mut conn)
+            .read(conn)
             .instrument(info_span!("read_connection"))
             .await?;
 
@@ -210,7 +233,7 @@ where
         // Write response bytes to connection with transport layer
         trace!("Attempting to write to connection");
         self.transport
-            .write(&mut conn, &response_bytes)
+            .write(conn, &response_bytes)
             .instrument(info_span!("write_connection"))
             .await?;
 
@@ -227,10 +250,11 @@ macro_rules! http_method {
     };
 }
 
-/// HTTP specific methods
 // TODO: some proc(?) macro(?) like #[get("/")] or #[post("/")]
 // fn index() -> Result<HttpResponse> {}
 // will make the function into a struct that impls ToHandler
+
+/// HTTP specific methods
 impl<T> YarsServer<T, HttpProtocol>
 where
     T: Transport,
@@ -246,9 +270,3 @@ where
     http_method!(patch, PATCH);
     // TODO?: files
 }
-
-// Really we don't have to do that here, we just need to
-// impl Into<HttpResponse> for JSON
-
-// TODO?: serde, maybe make our own ToJson trait so user
-// can use any json lib they want - that we support (with feature flags)

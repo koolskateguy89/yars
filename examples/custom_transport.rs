@@ -26,7 +26,7 @@ impl Transport for TestTransport {
         todo!()
     }
 
-    async fn close(self, conn: Self::Connection) -> TransportResult<()> {
+    async fn shutdown_conn(&self, conn: Self::Connection) -> TransportResult<()> {
         todo!()
     }
 }

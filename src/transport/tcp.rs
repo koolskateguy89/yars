@@ -67,7 +67,7 @@ impl Transport for TcpTransport {
         stream.write_all(response).await.map_err(|err| err.into())
     }
 
-    async fn close(self, mut stream: Self::Connection) -> TransportResult<()> {
+    async fn shutdown_conn(&self, mut stream: Self::Connection) -> TransportResult<()> {
         stream.shutdown().await?;
         Ok(())
     }
