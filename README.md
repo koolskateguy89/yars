@@ -1,12 +1,28 @@
 # YARS - Yet Another Rust Server
 
-## Project Overview
-
 YARS is a lightweight asynchronous server framework written from scratch in Rust. It focuses on raw data transport, protocol parsing, and request routing, and serving as a hands-on exploration into low-level server design.
 
 This project is intended for learning purposes and does not (will not) implement the full feature set of mature frameworks like Actix-Web or Axum.
 
 Built upon the [`tokio`](https://tokio.rs/) runtime.
+
+## Overview
+
+The server is a cake (everything is a case), you can think of it as having 3 layers:
+
+- transport layer
+- protocol layer (may be renamed in future)
+- request handler
+
+The [transport](src/transport.rs) layer is responsible for...
+
+The [protocol](src/protocol.rs) layer is responsible for providing strongly-typed request and response objects.
+It is also responsible for deserialising bytes from the transport layer into strongly-typed request objects.
+Then serialising the response object into bytes for the transporr layer.
+smthn about routing...
+
+The request handlers are written by you, the user!
+You can define a default handler for if no route is matched.
 
 ## TODO
 
