@@ -27,7 +27,7 @@ You can define a default handler for if no route is matched.
 ## TODO
 
 - [x] echo example (need to handle http body parsing first)
-- [ ] async handlers
+- [x] async handlers
 - [ ] custom transport example
 - [ ] mini-redis example
 - [ ] web app example (simple, just a few pages with a form or smthn)
@@ -49,11 +49,11 @@ use yars::{
 };
 
 // Handlers can return any Result<Into<HttpResponse>, Into<Box<dyn std::error::Error>>>
-fn hello(_req: HttpRequest) -> anyhow::Result<HttpResponse> {
+async fn hello(_req: HttpRequest) -> anyhow::Result<HttpResponse> {
     Ok(HttpResponse::Ok().text("Hello, World!"))
 }
 
-fn not_found(_req: HttpRequest) -> yars::Result<HttpResponse> {
+async fn not_found(_req: HttpRequest) -> yars::Result<HttpResponse> {
     Ok(HttpResponse::NotFound().text("Not Found"))
 }
 

@@ -22,14 +22,14 @@ impl From<User> for HttpResponse {
     }
 }
 
-fn json(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+async fn json(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
     Ok(User {
         name: "John".to_string(),
         age: 30,
     })
 }
 
-fn text(_req: HttpRequest) -> Result<HttpResponse> {
+async fn text(_req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().header("a", "b").text("Hello there"))
 }
 

@@ -12,8 +12,6 @@ use crate::{
     Result,
 };
 
-// TODO: async handlers -> will have to change a lot of examples
-
 // TODO: some sort of config file: max_connections, max_request_size, etc
 // TODO? type safe builder for build YarsServer when have more options
 
@@ -37,11 +35,11 @@ use crate::{
 /// };
 ///
 /// // Handlers can return any Result<Into<HttpResponse>, Into<Box<dyn std::error::Error>>>
-/// fn hello(_req: HttpRequest) -> anyhow::Result<HttpResponse> {
+/// async fn hello(_req: HttpRequest) -> anyhow::Result<HttpResponse> {
 ///     Ok(HttpResponse::Ok().text("Hello, World!"))
 /// }
 ///
-/// fn not_found(_req: HttpRequest) -> yars::Result<HttpResponse> {
+/// async fn not_found(_req: HttpRequest) -> yars::Result<HttpResponse> {
 ///     Ok(HttpResponse::NotFound().text("Not Found"))
 /// }
 ///
@@ -221,9 +219,9 @@ where
         };
 
         // Handle request by calling handler
-        let handler_span = info_span!("handle_request");
-        let response = handler_span
-            .in_scope(|| handler(request))
+        let response = handler(request)
+            .instrument(info_span!("handle_request"))
+            .await
             .map_err(crate::Error::Handler)?;
 
         // Serialize response using protocol layer

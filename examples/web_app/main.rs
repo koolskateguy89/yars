@@ -1,4 +1,4 @@
-//! A simple web app that lets you guess a number.
+//! A simple web app that lets you guess a number. Exposes just one page.
 //!
 //! The number is randomly generated on startup.
 //!
@@ -13,17 +13,19 @@ use yars::{
     YarsServer,
 };
 
-fn index(_req: HttpRequest) -> Result<HttpResponse> {
+// TODO: read file instead of include so it gets reloaded
+
+async fn index(_req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().html(include_str!("res/index.html")))
 }
 
-fn favicon(_req: HttpRequest) -> Result<HttpResponse> {
+async fn favicon(_req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok()
         .header("Content-Type", "image/x-icon")
         .body(include_bytes!("res/favicon.ico")))
 }
 
-fn script(_req: HttpRequest) -> Result<HttpResponse> {
+async fn script(_req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().js(include_str!("res/script.js")))
 }
 
@@ -70,11 +72,19 @@ async fn main() -> yars::Result<()> {
     let secret_number: u8 = rng.random();
     tracing::debug!("Secret number: {}", secret_number);
 
+    // TODO?: make a helper func to wrap sync handlers
+    let actual_guess_handler = guess(secret_number);
+    // having to wrap because of async :(
+    let wrapped_guess_handler = move |req| {
+        let res = actual_guess_handler(req);
+        Box::pin(async move { res })
+    };
+
     YarsServer::default_server()
         .get("/", index)
         .get("/favicon.ico", favicon)
         .get("/script.js", script)
-        .post("/guess", guess(secret_number))
+        .post("/guess", wrapped_guess_handler)
         .listen("127.0.0.1:8000")
         .await
 }

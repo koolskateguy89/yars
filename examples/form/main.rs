@@ -3,11 +3,11 @@ use yars::{
     Result, YarsServer,
 };
 
-fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+async fn index(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
     Ok(HttpResponse::Ok().html(include_str!("index.html")))
 }
 
-fn submit(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
+async fn submit(_req: HttpRequest) -> Result<impl Into<HttpResponse>> {
     Ok(HttpResponse::Ok().json(r#"{ "abc": 123 }"#))
 }
 
@@ -20,7 +20,7 @@ async fn main() -> yars::Result<()> {
 
     YarsServer::default_server()
         .get("/", index)
-        .post("/abc", submit)
+        .post("/submit", submit)
         .listen("127.0.0.1:8001")
         .await
 }

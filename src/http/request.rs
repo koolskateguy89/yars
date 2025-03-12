@@ -32,9 +32,7 @@ pub enum RequestMethod {
 impl HttpRequest {
     pub(crate) fn parse_request(raw: Vec<u8>) -> Option<HttpRequest> {
         // let utf8_str = String::from_utf8(raw).ok()?;
-        parser::parse_request(&raw)
-            .map(|(_input, req)| req)
-            .ok()
+        parser::parse_request(&raw).map(|(_input, req)| req).ok()
     }
 }
 

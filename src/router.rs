@@ -82,7 +82,8 @@ mod tests {
 
         assert!(router.get_request_handler(&key).is_none());
 
-        let handler = |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
+        let handler =
+            async |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
         router.add_route(key.clone(), handler);
 
         assert!(router.get_request_handler(&key).is_some());
@@ -96,7 +97,7 @@ mod tests {
         assert!(router.get_request_handler(&key).is_none());
 
         let default_handler =
-            |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
+            async |_req| -> crate::Result<<HttpProtocol as Protocol>::Res> { unimplemented!() };
         router.set_default_handler(default_handler);
 
         assert!(router.get_request_handler(&key).is_some());

@@ -214,15 +214,14 @@ mod tests {
 
     #[test]
     fn parses_request() {
-        let req = parse_request(b"GET / HTTP/1.1\r\n\
+        let (input, req) = parse_request(
+            b"GET / HTTP/1.1\r\n\
         Host: localhost:8080\r\n\
         \r\n\
         The body\r\n\
-        is over multiple lines");
-        dbg!(&req);
-        assert!(req.is_ok());
-
-        let (input, req) = req.unwrap();
+        is over multiple lines",
+        )
+        .unwrap();
         assert!(input.is_empty());
 
         assert_eq!(req.method, RequestMethod::GET);
@@ -231,6 +230,9 @@ mod tests {
         assert_eq!(req.headers.len(), 1);
         assert_eq!(req.headers.get("Host"), Some(&"localhost:8080".to_string()));
 
-        assert_eq!(req.body, Some(b"The body\r\nis over multiple lines".to_vec()));
+        assert_eq!(
+            req.body,
+            Some(b"The body\r\nis over multiple lines".to_vec())
+        );
     }
 }

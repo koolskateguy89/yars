@@ -3,11 +3,11 @@ use yars::{
     Result, YarsServer,
 };
 
-fn echo(req: HttpRequest) -> Result<HttpResponse> {
+async fn echo(req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().text(req.body.unwrap()))
 }
 
-fn echo_uri(req: HttpRequest) -> Result<HttpResponse> {
+async fn echo_uri(req: HttpRequest) -> Result<HttpResponse> {
     Ok(HttpResponse::Ok().text(req.uri))
 }
 
