@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-YARS is a lightweight asynchronous server framework written from scratch in Rust. It focuses on *raw data transport, protocol parsing, and request routing, and serving as a hands-on exploration into low-level server design.
+YARS is a lightweight asynchronous server framework written from scratch in Rust. It focuses on raw data transport, protocol parsing, and request routing, and serving as a hands-on exploration into low-level server design.
 
 This project is intended for learning purposes and does not (will not) implement the full feature set of mature frameworks like Actix-Web or Axum.
 
@@ -10,8 +10,9 @@ Built upon the [`tokio`](https://tokio.rs/) runtime.
 
 ## TODO
 
+- [x] echo example (need to handle http body parsing first)
+- [ ] async handlers
 - [ ] custom transport example
-- [ ] echo example (need to handle http body parsing first)
 - [ ] mini-redis example
 - [ ] web app example (simple, just a few pages with a form or smthn)
 - [ ] ? UDP transport
