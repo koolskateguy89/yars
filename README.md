@@ -8,7 +8,7 @@ Built upon the [`tokio`](https://tokio.rs/) runtime.
 
 ## Overview
 
-The server is a cake (everything is a case), you can think of it as having 3 layers:
+The server is a cake (everything is cake), you can think of it as having 3 layers:
 
 - transport layer
 - protocol layer (may be renamed in future)
